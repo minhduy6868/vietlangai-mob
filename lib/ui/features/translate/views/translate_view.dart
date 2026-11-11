@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../../data/local_store.dart';
 import '../../../../data/services/api_client.dart';
 import '../../../../data/services/ocr_engine.dart';
 import '../../../../data/wiring.dart';
@@ -21,6 +24,7 @@ class TranslateUiState {
     this.error,
     this.pronunciation,
     this.culturalNote,
+    this.fromGlossary = false,
   });
 
   final bool loading;
@@ -28,6 +32,7 @@ class TranslateUiState {
   final String? error;
   final String? pronunciation;
   final String? culturalNote;
+  final bool fromGlossary;
 
   TranslateUiState copyWith({
     bool? loading,
@@ -35,14 +40,17 @@ class TranslateUiState {
     String? error,
     String? pronunciation,
     String? culturalNote,
+    bool? fromGlossary,
     bool clearError = false,
+    bool clearResult = false,
   }) {
     return TranslateUiState(
       loading: loading ?? this.loading,
-      result: result ?? this.result,
+      result: clearResult ? result : result ?? this.result,
       error: clearError ? error : error ?? this.error,
       pronunciation: pronunciation ?? this.pronunciation,
       culturalNote: culturalNote ?? this.culturalNote,
+      fromGlossary: fromGlossary ?? this.fromGlossary,
     );
   }
 }
@@ -53,18 +61,90 @@ class TranslateViewModel extends Notifier<TranslateUiState> {
 
   Future<void> translate(String text, String source, String target) async {
     if (text.trim().isEmpty) return;
-    state = state.copyWith(loading: true, clearError: true, pronunciation: null, culturalNote: null);
+    state = state.copyWith(
+      loading: true,
+      clearError: true,
+      clearResult: true,
+      pronunciation: null,
+      culturalNote: null,
+      fromGlossary: false,
+    );
+    final store = ref.read(localStoreProvider);
     final api = ref.read(apiClientProvider);
+
     try {
       final result = await api.guard(
         api.translateText(text: text, sourceLang: source, targetLang: target),
       );
-      state = state.copyWith(loading: false, result: result);
+      await _persistHistory(
+        store,
+        sourceText: text,
+        targetText: result.text,
+        from: source,
+        to: target,
+        engine: result.engine,
+      );
+      state = state.copyWith(loading: false, result: result, fromGlossary: false);
     } on ApiException catch (error) {
+      final hit = await store.glossaryLookup(text: text, from: source, to: target);
+      if (hit != null) {
+        final result = TranslationResult(
+          text: hit.target,
+          sourceLang: source,
+          targetLang: target,
+          route: '$source>$target',
+          engine: 'glossary',
+          warnings: const ['Tra từ offline từ cặp đã duyệt / lịch sử máy.'],
+        );
+        await _persistHistory(
+          store,
+          sourceText: text,
+          targetText: hit.target,
+          from: source,
+          to: target,
+          engine: 'glossary',
+        );
+        state = state.copyWith(loading: false, result: result, fromGlossary: true);
+        return;
+      }
       state = state.copyWith(loading: false, error: error.message);
     } catch (error) {
+      final hit = await store.glossaryLookup(text: text, from: source, to: target);
+      if (hit != null) {
+        final result = TranslationResult(
+          text: hit.target,
+          sourceLang: source,
+          targetLang: target,
+          route: '$source>$target',
+          engine: 'glossary',
+          warnings: const ['Tra từ offline từ cặp đã duyệt / lịch sử máy.'],
+        );
+        state = state.copyWith(loading: false, result: result, fromGlossary: true);
+        return;
+      }
       state = state.copyWith(loading: false, error: error.toString());
     }
+  }
+
+  Future<void> _persistHistory(
+    LocalStore store, {
+    required String sourceText,
+    required String targetText,
+    required String from,
+    required String to,
+    required String engine,
+  }) {
+    return store.addHistory(
+      TranslationHistoryItem(
+        id: const Uuid().v4(),
+        source: sourceText.trim(),
+        target: targetText.trim(),
+        from: from,
+        to: to,
+        at: DateTime.now().toIso8601String(),
+        engine: engine,
+      ),
+    );
   }
 }
 
@@ -85,12 +165,20 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
   String? _sourceCode;
   String? _targetCode;
   int _selectedInputTab = 0; // 0: Bàn phím, 1: Giọng nói, 2: Quét ảnh
-
-  final List<Map<String, String>> _recentTranslations = [];
+  List<TranslationHistoryItem> _recentTranslations = [];
 
   @override
   void initState() {
     super.initState();
+    _textController.addListener(() {
+      if (mounted) setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
+  }
+
+  Future<void> _loadHistory() async {
+    final rows = await ref.read(localStoreProvider).history(limit: 12);
+    if (mounted) setState(() => _recentTranslations = rows);
   }
 
   @override
@@ -268,9 +356,14 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                         FilledButton.icon(
                           onPressed: translation.loading
                               ? null
-                              : () => ref
-                                  .read(translateViewModelProvider.notifier)
-                                  .translate(_textController.text, _sourceCode!, _targetCode!),
+                              : () async {
+                                  await ref.read(translateViewModelProvider.notifier).translate(
+                                        _textController.text,
+                                        _sourceCode!,
+                                        _targetCode!,
+                                      );
+                                  await _loadHistory();
+                                },
                           icon: translation.loading
                               ? const SizedBox(
                                   width: 16,
@@ -336,13 +429,31 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                     letterSpacing: -0.2,
                   ),
                 ),
-                TextButton(
-                  onPressed: () => _show('Đã làm mới lịch sử'),
-                  child: const Text('Xem tất cả', style: TextStyle(fontSize: 12)),
-                ),
+                if (_recentTranslations.isNotEmpty)
+                  TextButton(
+                    onPressed: () async {
+                      await ref.read(localStoreProvider).clearHistory();
+                      await _loadHistory();
+                      _show('Đã xóa lịch sử máy', tone: AppFeedbackTone.success);
+                    },
+                    child: const Text('Xóa lịch sử', style: TextStyle(fontSize: 12)),
+                  ),
               ],
             ),
             const SizedBox(height: 6),
+            if (_recentTranslations.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Chưa có lịch sử. Mỗi lần dịch thành công sẽ lưu trên máy để tra lại offline.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ),
             for (final item in _recentTranslations)
               Card(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -356,11 +467,12 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   title: Text(
-                    item['source']!,
+                    item.source,
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                   subtitle: Text(
-                    '${item['target']} (${item['from']} → ${item['to']})',
+                    '${item.target} (${item.from} → ${item.to})'
+                    '${item.engine == null ? '' : ' · ${item.engine}'}',
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
@@ -371,13 +483,18 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                     size: 16,
                     color: theme.colorScheme.primary,
                   ),
-                  onTap: () {
-                    _textController.text = item['source']!;
-                    ref.read(translateViewModelProvider.notifier).translate(
-                          item['source']!,
-                          _sourceCode!,
-                          _targetCode!,
+                  onTap: () async {
+                    setState(() {
+                      _textController.text = item.source;
+                      _sourceCode = item.from;
+                      _targetCode = item.to;
+                    });
+                    await ref.read(translateViewModelProvider.notifier).translate(
+                          item.source,
+                          item.from,
+                          item.to,
                         );
+                    await _loadHistory();
                   },
                 ),
               ),
@@ -524,20 +641,38 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                 ),
               ),
               const Spacer(),
+              if (translation.fromGlossary)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'OFFLINE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: theme.colorScheme.secondary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Sao chép',
                 icon: const Icon(Icons.copy_rounded, size: 18),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: resultText));
-                  _show('Đã sao chép kết quả');
+                  _show('Đã sao chép kết quả', tone: AppFeedbackTone.success);
                 },
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Chia sẻ',
                 icon: const Icon(Icons.share_outlined, size: 18),
-                onPressed: () => _show('Chia sẻ câu dịch'),
+                onPressed: () => _shareTranslation(resultText),
               ),
             ],
           ),
@@ -661,7 +796,11 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
-                        subtitle: Text(item.family),
+                        subtitle: Text(
+                          '${item.code} · ${item.family}\n${item.orthography}',
+                          style: const TextStyle(height: 1.35),
+                        ),
+                        isThreeLine: true,
                         trailing: isSelected
                             ? Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary)
                             : null,
@@ -688,7 +827,27 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
   }
 
   void _simulateVoiceInput(AppLocalizations l10n) {
-    _show('Nhận giọng nói trên máy chưa sẵn sàng. Hãy gõ câu hoặc dùng API giọng nói từ bản điện thoại.');
+    _show(
+      'Nhận giọng nói trên web chưa sẵn sàng. Gõ câu, hoặc dùng bản điện thoại khi API giọng nói mở.',
+      tone: AppFeedbackTone.warning,
+    );
+  }
+
+  Future<void> _shareTranslation(String resultText) async {
+    final source = _textController.text.trim();
+    final payload = [
+      if (source.isNotEmpty) source,
+      resultText,
+      '${_sourceCode ?? '?'} → ${_targetCode ?? '?'} · Ngôn Sắc Việt',
+    ].join('\n');
+    try {
+      await SharePlus.instance.share(ShareParams(text: payload));
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: payload));
+      if (mounted) {
+        _show('Đã sao chép để chia sẻ', tone: AppFeedbackTone.success);
+      }
+    }
   }
 
   Future<void> _readPhoto(AppLocalizations l10n) async {

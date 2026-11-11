@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 
+import '../../data/session_profile.dart';
 import '../../domain/sync_use_case.dart';
 import '../app_providers.dart';
 import 'app_feedback.dart';
@@ -85,41 +86,46 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 14, left: 4),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => context.push('/settings'),
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 17,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    child: const Text(
-                      'NL',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF8B261E),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 9,
-                      height: 9,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: theme.scaffoldBackgroundColor,
-                          width: 1.5,
+            child: Builder(
+              builder: (context) {
+                final profile = ref.watch(sessionProfileProvider);
+                return InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => context.push(profile.isSignedIn ? '/settings' : '/login'),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 17,
+                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        child: Text(
+                          profile.isSignedIn ? profile.initials : '?',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                       ),
-                    ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                            color: profile.isSignedIn ? Colors.green : Colors.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: theme.scaffoldBackgroundColor,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -130,15 +136,28 @@ class _AppShellState extends ConsumerState<AppShell> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.amber.shade100,
+              color: theme.brightness == Brightness.dark
+                  ? const Color(0xFF3A2E1A)
+                  : Colors.amber.shade100,
               child: Row(
                 children: [
-                  const Icon(Icons.cloud_off_rounded, size: 16, color: Colors.brown),
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    size: 16,
+                    color: theme.brightness == Brightness.dark
+                        ? const Color(0xFFE8C27A)
+                        : Colors.brown,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       l10n.offlineSaved,
-                      style: const TextStyle(fontSize: 12, color: Colors.brown),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.brightness == Brightness.dark
+                            ? const Color(0xFFE8C27A)
+                            : Colors.brown,
+                      ),
                     ),
                   ),
                 ],

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi" data-type="software" data-kind="software">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="page-type" content="software" />
+  <meta name="site-kind" content="software" />
+  <meta name="description" content="Ngôn Sắc Việt — dịch tiếng Tày, Ê Đê, Chăm, H'Mông và Jrai trên trục tiếng Việt, với ngữ liệu đã duyệt." />
+  <meta name="theme-color" content="#081210" />
+  <meta property="og:title" content="Ngôn Sắc Việt" />
+  <meta property="og:description" content="Dịch và giữ tiếng dân tộc Việt Nam." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ngonsacviet.ourvibe.tech/" />
+  <title>Ngôn Sắc Việt</title>
+  <link rel="icon" type="image/png" href="assets/app_icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Tới nội dung</a>
+
+  <header class="nav">
+    <a class="brand" href="/">
+      <img src="assets/app_icon.png" alt="" width="36" height="36" />
+      <span>Ngôn Sắc Việt</span>
+    </a>
+    <nav class="nav-links" aria-label="Chính">
+      <a href="#film">Giới thiệu</a>
+      <a href="#languages">Ngôn ngữ</a>
+      <a href="#try">Thử app</a>
+      <a href="#download">Tải APK</a>
+      <a href="#flow">Cách dùng</a>
+      <a href="/app/#/login">Đăng nhập</a>
+      <a class="btn btn-ghost nav-cta" href="/app/#/login?mode=register">Tạo tài khoản</a>
+    </nav>
+    <button class="menu" type="button" aria-label="Mở menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="hero" data-enter>
+      <div class="hero-media" aria-hidden="true">
+        <img src="assets/splash.jpg" alt="" />
+        <div class="hero-veil"></div>
+      </div>
+      <div class="hero-copy">
+        <p class="hero-kicker">Dịch · Học · Di sản</p>
+        <h1>Ngôn Sắc Việt</h1>
+        <div class="rule" aria-hidden="true"></div>
+        <p class="hero-lead">
+          Dịch tiếng dân tộc trên trục tiếng Việt. Giữ câu đã rà soát.
+          Mở rộng bằng mô hình khi sẵn sàng.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/app/#/translate">Bắt đầu dịch</a>
+          <a class="btn btn-ghost" href="/downloads/ngonsacviet-arm64.apk" download="ngonsacviet-arm64.apk">Tải APK Android</a>
+          <a class="btn btn-ghost" href="/app/#/login">Đăng nhập</a>
+        </div>
+        <p class="hero-langs">Tày · Ê Đê · Chăm · H'Mông · Jrai</p>
+      </div>
+    </section>
+
+    <section class="film" id="film">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Giới thiệu trong một thước phim</h2>
+          <p>Không khí cao nguyên, không chữ — dựng từ ảnh thương hiệu bằng Grok Imagine.</p>
+        </div>
+        <div class="film-frame">
+          <video
+            id="intro"
+            poster="assets/splash.jpg"
+            src="assets/intro.mp4"
+            playsinline
+            muted
+            loop
+            autoplay
+            preload="metadata"
+          ></video>
+          <button class="film-mute" type="button" aria-pressed="true">Bật tiếng</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="languages" id="languages">
+      <div class="wrap">
+        <div class="section-head light">
+          <h2>Năm ngôn ngữ.<br />Một trục tiếng Việt.</h2>
+          <p>Chạm từng dòng để xem họ ngôn ngữ, chữ viết và vùng — dữ liệu catalog, không bịa câu dân tộc.</p>
+        </div>
+        <ul class="lang-list" id="lang-explorer">
+          <li class="lang-item" data-code="tyz" data-family="Tai-Kadai" data-script="Latin theo chữ Quốc ngữ" data-region="Cao Bằng, Lạng Sơn, Bắc Kạn và các tỉnh phía Bắc" data-note="Ưu tiên fine-tune nhờ cặp Việt công khai tương đối nhiều.">
+            <button type="button" class="lang-row" aria-expanded="false">
+              <span class="lang-name">Tày</span>
+              <span class="lang-code">tyz</span>
+            </button>
+            <div class="lang-panel" hidden>
+              <p><strong>Họ</strong> Tai-Kadai</p>
+              <p><strong>Chữ</strong> Latin theo chữ Quốc ngữ</p>
+              <p><strong>Vùng</strong> Cao Bằng, Lạng Sơn, Bắc Kạn và các tỉnh phía Bắc</p>
+              <a class="lang-go" href="/app/#/learn">Học kiến thức Tày</a>
+            </div>
+          </li>
+          <li class="lang-item" data-code="rad">
+            <button type="button" class="lang-row" aria-expanded="false">
+              <span class="lang-name">Ê Đê</span>
+              <span class="lang-code">rad</span>
+            </button>
+            <div class="lang-panel" hidden>
+              <p><strong>Họ</strong> Austronesian, Chamic</p>
+              <p><strong>Chữ</strong> Latin</p>
+              <p><strong>Vùng</strong> Đắk Lắk và Tây Nguyên</p>
+              <a class="lang-go" href="/app/#/learn">Học kiến thức Ê Đê</a>
+            </div>
+          </li>
+          <li class="lang-item" data-code="cjm">
+            <button type="button" class="lang-row" aria-expanded="false">
+              <span class="lang-name">Chăm</span>
+              <span class="lang-code">cjm</span>
+            </button>
+            <div class="lang-panel" hidden>
+              <p><strong>Họ</strong> Austronesian, Chamic</p>
+              <p><strong>Chữ</strong> Akhar Thrah; học liệu còn dùng Latin</p>
+              <p><strong>Vùng</strong> Ninh Thuận, Bình Thuận</p>
+              <p class="lang-glyphs" aria-hidden="true">ꨀꨁꨂꨃꨄꨅ</p>
+              <a class="lang-go" href="/app/#/heritage/cham">Xem di sản chữ Chăm</a>
+            </div>
+          </li>
+          <li class="lang-item" data-code="hmn">
+            <button type="button" class="lang-row" aria-expanded="false">
+              <span class="lang-name">H'Mông</span>
+              <span class="lang-code">hmn</span>
+            </button>
+            <div class="lang-panel" hidden>
+              <p><strong>Họ</strong> Hmong-Mien</p>
+              <p><strong>Chữ</strong> Latin phổ thông Việt Nam — không trộn RPA hải ngoại</p>
+              <p><strong>Vùng</strong> Hà Giang, Lào Cai, Sơn La và vùng núi phía Bắc</p>
+              <a class="lang-go" href="/app/#/learn">Học kiến thức H'Mông</a>
+            </div>
+          </li>
+          <li class="lang-item" data-code="jra">
+            <button type="button" class="lang-row" aria-expanded="false">
+              <span class="lang-name">Jrai</span>
+              <span class="lang-code">jra</span>
+            </button>
+            <div class="lang-panel" hidden>
+              <p><strong>Họ</strong> Austronesian, Chamic</p>
+              <p><strong>Chữ</strong> Latin</p>
+              <p><strong>Vùng</strong> Gia Lai, Kon Tum</p>
+              <a class="lang-go" href="/app/#/learn">Học kiến thức Jrai</a>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="try" id="try">
+      <div class="wrap try-grid">
+        <div>
+          <h2>Thử trong ứng dụng</h2>
+          <p>
+            Dịch có lịch sử trên máy, học thẻ kiến thức, quiz offline,
+            và góp câu — không cần chờ máy chủ ML.
+          </p>
+        </div>
+        <div class="try-actions">
+          <a class="btn btn-primary" href="/app/#/translate">Mở dịch</a>
+          <a class="btn btn-ghost" href="/app/#/learn">Mở học</a>
+          <a class="btn btn-ghost" href="/app/#/contribute">Góp câu</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="wrap download-grid">
+        <div>
+          <p class="trust-label">Android</p>
+          <h2>Cài APK trên điện thoại</h2>
+          <p>
+            Bản arm64 (điện thoại hiện đại). Cho phép cài từ nguồn không xác định,
+            rồi mở file tải về. Bản sideload ký debug — dùng để trải nghiệm, chưa lên Play Store.
+          </p>
+          <ul class="download-notes">
+            <li>File ~22&nbsp;MB · Android 6.0+</li>
+            <li>OCR ảnh trên máy chưa kèm trong bản này</li>
+            <li>Dịch / học / góp câu chạy trên app</li>
+          </ul>
+        </div>
+        <div class="download-actions">
+          <a class="btn btn-primary" href="/downloads/ngonsacviet-arm64.apk" download="ngonsacviet-arm64.apk">Tải Ngôn Sắc Việt.apk</a>
+          <a class="btn btn-ghost" href="/app/#/translate">Dùng bản web</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow" id="flow">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Ba bước rõ ràng</h2>
+          <p>Từ câu nguồn đến bản dịch có nguồn gốc.</p>
+        </div>
+        <div class="flow-grid">
+          <article>
+            <span class="tick lacquer"></span>
+            <h3>Chọn hướng</h3>
+            <p>Dân tộc ↔ Việt là đường chính. Anh chỉ đi qua tiếng Việt.</p>
+          </article>
+          <article>
+            <span class="tick brass"></span>
+            <h3>Dịch có kiểm</h3>
+            <p>Cặp đã duyệt lấy từ glossary. Câu tự do dùng neural khi mô hình sẵn sàng.</p>
+          </article>
+          <article>
+            <span class="tick jade"></span>
+            <h3>Góp và học</h3>
+            <p>Cộng đồng gửi câu đã kiểm. Học liệu gắn di sản từng ngôn ngữ.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="account" id="account">
+      <div class="wrap account-grid">
+        <div>
+          <h2>Tài khoản thành viên</h2>
+          <p>
+            Đăng nhập bằng email, tạo tài khoản mới, hoặc tiếp tục với Google
+            khi Client ID đã cấu hình trên máy chủ.
+          </p>
+        </div>
+        <div class="account-actions">
+          <a class="btn btn-primary" href="/app/#/login">Đăng nhập</a>
+          <a class="btn btn-ghost" href="/app/#/login?mode=register">Tạo tài khoản</a>
+          <a class="btn btn-ghost" href="/app/#/login">Tiếp tục với Google</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust">
+      <div class="wrap">
+        <p class="trust-label">Niềm tin từ ngữ liệu</p>
+        <h2>Không bịa câu tiếng dân tộc. Bản đưa vào mô hình phải verified hoặc approved.</h2>
+        <p class="trust-note">
+          Chữ Chăm Akhar Thrah và chính tả H'Mông trong nước được tách lớp riêng —
+          không trộn RPA hải ngoại.
+        </p>
+      </div>
+    </section>
+
+    <section class="close">
+      <div class="wrap center">
+        <h2>Bắt đầu với Ngôn Sắc Việt</h2>
+        <p>Mở ứng dụng dịch, đăng nhập, hoặc góp câu đã kiểm chứng.</p>
+        <div class="hero-actions center-actions">
+          <a class="btn btn-primary" href="/app/#/translate">Bắt đầu dịch</a>
+          <a class="btn btn-ghost" href="/downloads/ngonsacviet-arm64.apk" download="ngonsacviet-arm64.apk">Tải APK</a>
+          <a class="btn btn-ghost" href="/app/#/login">Đăng nhập</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <div class="brand footer-brand">
+        <img src="assets/app_icon.png" alt="" width="28" height="28" />
+        <span>Ngôn Sắc Việt</span>
+      </div>
+      <p>© <span id="year"></span> Ngôn Sắc Việt</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

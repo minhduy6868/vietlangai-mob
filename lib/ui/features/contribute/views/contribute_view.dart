@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../data/session_profile.dart';
 import '../../../../domain/models/models.dart';
 import '../../../app_providers.dart';
 import '../../../core/app_feedback.dart';
@@ -49,11 +51,12 @@ class _ContributeViewState extends ConsumerState<ContributeView> {
     final settings = ref.watch(settingsViewModelProvider);
     final languagesAsync = ref.watch(languagesProvider);
     final savedContributions = ref.watch(contributionsProvider);
+    final profile = ref.watch(sessionProfileProvider);
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
-        // 1. User Profile Header Card (Figma Style)
+        // 1. User Profile Header Card
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -65,7 +68,7 @@ class _ContributeViewState extends ConsumerState<ContributeView> {
                       radius: 28,
                       backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
                       child: Text(
-                        'NL',
+                        profile.isSignedIn ? profile.initials : '?',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -79,11 +82,17 @@ class _ContributeViewState extends ConsumerState<ContributeView> {
                       child: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AC0D),
+                          color: profile.isSignedIn
+                              ? const Color(0xFF2F6B55)
+                              : const Color(0xFFD4AC0D),
                           shape: BoxShape.circle,
                           border: Border.all(color: theme.cardTheme.color ?? Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.star_rounded, size: 12, color: Colors.white),
+                        child: Icon(
+                          profile.isSignedIn ? Icons.check_rounded : Icons.person_outline_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -93,24 +102,37 @@ class _ContributeViewState extends ConsumerState<ContributeView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Text(
-                            'Nguyễn Thị Nhã Lan',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                          Flexible(
+                            child: Text(
+                              profile.label,
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                            ),
                           ),
-                          SizedBox(width: 4),
-                          Icon(Icons.verified_rounded, size: 16, color: Color(0xFFD4AC0D)),
+                          if (profile.isSignedIn) ...[
+                            const SizedBox(width: 4),
+                            Icon(Icons.verified_rounded, size: 16, color: theme.colorScheme.primary),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Thành viên tích cực bảo tồn • Cấp độ 3',
+                        profile.isSignedIn
+                            ? 'Thành viên · góp câu đã kiểm chứng'
+                            : 'Khách · đăng nhập để đồng bộ đóng góp',
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                         ),
                       ),
+                      if (!profile.isSignedIn) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => context.push('/login'),
+                          child: const Text('Đăng nhập'),
+                        ),
+                      ],
                     ],
                   ),
                 ),

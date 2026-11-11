@@ -15,13 +15,21 @@ import 'app_theme.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    // Marketing site is static HTML at /. Flutter boots under /app/.
     initialLocation: '/translate',
     routes: [
+      GoRoute(path: '/', redirect: (context, state) => '/translate'),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
-            routes: [GoRoute(path: '/translate', builder: (context, state) => const TranslateView())],
+            routes: [
+              GoRoute(
+                path: '/translate',
+                builder: (context, state) => const TranslateView(),
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [
@@ -31,7 +39,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':slug',
-                    builder: (context, state) => HeritageDetailView(slug: state.pathParameters['slug']!),
+                    builder: (context, state) =>
+                        HeritageDetailView(slug: state.pathParameters['slug']!),
                   ),
                 ],
               ),
@@ -45,19 +54,33 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':lessonId',
-                    builder: (context, state) => QuizView(lessonId: state.pathParameters['lessonId']!),
+                    builder: (context, state) =>
+                        QuizView(lessonId: state.pathParameters['lessonId']!),
                   ),
                 ],
               ),
             ],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: '/contribute', builder: (context, state) => const ContributeView())],
+            routes: [
+              GoRoute(
+                path: '/contribute',
+                builder: (context, state) => const ContributeView(),
+              ),
+            ],
           ),
         ],
       ),
-      GoRoute(path: '/settings', builder: (context, state) => const SettingsView()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginView()),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsView(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => LoginView(
+          initialRegister: state.uri.queryParameters['mode'] == 'register',
+        ),
+      ),
     ],
   );
 });

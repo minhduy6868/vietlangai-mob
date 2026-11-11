@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Brand colors from Figma: Terracotta Red, Warm Amber, Jade Accent
@@ -26,27 +27,30 @@ class AppTheme {
       secondary: accentAmber,
       tertiary: accentJade,
       surface: lightSurface,
-    ).copyWith(
-      surface: lightSurface,
-    );
+    ).copyWith(surface: lightSurface);
 
+    final textTheme = GoogleFonts.beVietnamProTextTheme();
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: lightBg,
       visualDensity: VisualDensity.standard,
-      appBarTheme: const AppBarTheme(
+      textTheme: textTheme.apply(
+        bodyColor: const Color(0xFF2D1815),
+        displayColor: const Color(0xFF2D1815),
+      ),
+      appBarTheme: AppBarTheme(
         backgroundColor: lightBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          color: Color(0xFF2D1815),
+        titleTextStyle: GoogleFonts.beVietnamPro(
+          color: const Color(0xFF2D1815),
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
-        iconTheme: IconThemeData(color: Color(0xFF2D1815)),
+        iconTheme: const IconThemeData(color: Color(0xFF2D1815)),
       ),
       cardTheme: CardThemeData(
         color: lightSurface,
@@ -86,7 +90,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: lightSurface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: lightCardBorder),
@@ -111,7 +118,9 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -130,28 +139,33 @@ class AppTheme {
       secondary: accentAmber,
       tertiary: accentJade,
       surface: darkSurface,
-    ).copyWith(
-      surface: darkSurface,
-    );
+    ).copyWith(surface: darkSurface);
 
+    final textTheme = GoogleFonts.beVietnamProTextTheme(
+      ThemeData(brightness: Brightness.dark).textTheme,
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: darkBg,
       visualDensity: VisualDensity.standard,
-      appBarTheme: const AppBarTheme(
+      textTheme: textTheme.apply(
+        bodyColor: const Color(0xFFF2ECE6),
+        displayColor: const Color(0xFFF2ECE6),
+      ),
+      appBarTheme: AppBarTheme(
         backgroundColor: darkBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          color: Color(0xFFF2ECE6),
+        titleTextStyle: GoogleFonts.beVietnamPro(
+          color: const Color(0xFFF2ECE6),
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
-        iconTheme: IconThemeData(color: Color(0xFFF2ECE6)),
+        iconTheme: const IconThemeData(color: Color(0xFFF2ECE6)),
       ),
       cardTheme: CardThemeData(
         color: darkSurface,
@@ -191,7 +205,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: darkSurface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: darkCardBorder),
@@ -216,7 +233,9 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: primaryDarkColor,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),

@@ -10,11 +10,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/catalog_mapping.dart';
 import 'data/local_store.dart';
 import 'data/open_box.dart';
+import 'data/session_profile.dart';
 import 'data/services/preference_store.dart';
 import 'data/wiring.dart';
 import 'ui/app_providers.dart';
 import 'ui/core/app.dart';
 import 'ui/core/splash_view.dart';
+
+const _catalogBundleVersion = '2-lessons-meta';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,10 +25,16 @@ Future<void> main() async {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
   }
   final store = LocalStore(await openAppBox());
-  if (!await store.hasCatalog()) {
-    final raw = await rootBundle.loadString('assets/catalog.json');
-    await store.replaceSnapshot(snapshotFromBundledCatalog(jsonDecode(raw) as Map<String, dynamic>));
+  final raw = await rootBundle.loadString('assets/catalog.json');
+  final bundled = snapshotFromBundledCatalog(jsonDecode(raw) as Map<String, dynamic>);
+  final needsCatalog = !await store.hasCatalog();
+  final needsLessonBump = (await store.catalogVersion()) != _catalogBundleVersion;
+  if (needsCatalog) {
+    await store.replaceSnapshot(bundled);
+  } else if (needsLessonBump) {
+    await store.replaceLessons(bundled.lessons);
   }
+  await store.setCatalogVersion(_catalogBundleVersion);
   final preferences = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
@@ -33,6 +42,7 @@ Future<void> main() async {
       overrides: [
         localStoreProvider.overrideWithValue(store),
         preferenceStoreProvider.overrideWithValue(SharedPreferenceStore(preferences)),
+        sessionProfileStoreProvider.overrideWithValue(SessionProfileStore(preferences)),
         syncRunnerProvider.overrideWith((ref) => ref.watch(syncUseCaseProvider).run),
       ],
       child: const _BootstrapApp(),

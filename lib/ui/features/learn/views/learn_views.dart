@@ -16,21 +16,51 @@ class LearnListView extends ConsumerStatefulWidget {
   ConsumerState<LearnListView> createState() => _LearnListViewState();
 }
 
-class _LearnListViewState extends ConsumerState<LearnListView> {
+class _LearnListViewState extends ConsumerState<LearnListView> with SingleTickerProviderStateMixin {
   int _currentCardIndex = 0;
+  bool _flipped = false;
 
-  List<Map<String, String>> _cardsFrom(List<Lesson> lessons) {
-    // Only reviewer-approved phrases — never invent ethnic sentences.
+  List<Map<String, String>> _cardsFrom(List<Lesson> lessons, List<Language> languages) {
+    // Prefer reviewer-approved phrases — never invent ethnic sentences.
     final cards = <Map<String, String>>[];
     for (final lesson in lessons) {
       for (final phrase in lesson.phrases) {
         cards.add({
-          'word': phrase.nativeText,
-          'meaning': phrase.viText,
+          'front': phrase.nativeText,
+          'back': phrase.viText,
+          'kind': 'phrase',
           'course': lesson.titleVi,
           'lessonId': lesson.id,
         });
       }
+    }
+    if (cards.isNotEmpty) return cards;
+
+    // Fallback: knowledge cards from catalog meta (Vietnamese about the language).
+    final byCode = {for (final language in languages) language.code: language};
+    for (final lesson in lessons) {
+      final language = byCode[lesson.languageCode];
+      cards.add({
+        'front': 'Họ ngôn ngữ?',
+        'back': language?.family ?? '—',
+        'kind': 'meta',
+        'course': lesson.titleVi,
+        'lessonId': lesson.id,
+      });
+      cards.add({
+        'front': 'Chữ viết theo dõi?',
+        'back': language?.orthography ?? '—',
+        'kind': 'meta',
+        'course': lesson.titleVi,
+        'lessonId': lesson.id,
+      });
+      cards.add({
+        'front': lesson.titleVi,
+        'back': lesson.summaryVi,
+        'kind': 'meta',
+        'course': 'Giới thiệu',
+        'lessonId': lesson.id,
+      });
     }
     return cards;
   }
@@ -51,7 +81,7 @@ class _LearnListViewState extends ConsumerState<LearnListView> {
         if (lessons.isEmpty) {
           return Center(child: Text(l10n.emptyLessons, textAlign: TextAlign.center));
         }
-        final cards = _cardsFrom(lessons);
+        final cards = _cardsFrom(lessons, languages);
         final card = cards.isEmpty ? null : cards[_currentCardIndex.clamp(0, cards.length - 1)];
 
         return ListView(
@@ -75,7 +105,9 @@ class _LearnListViewState extends ConsumerState<LearnListView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    l10n.phraseNote,
+                    cards.any((row) => row['kind'] == 'phrase')
+                        ? l10n.phraseNote
+                        : 'Thẻ kiến thức từ catalog: họ ngôn ngữ, chữ viết, vùng — không bịa câu dân tộc. Quiz chạy offline trên máy.',
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
@@ -93,38 +125,66 @@ class _LearnListViewState extends ConsumerState<LearnListView> {
                 ),
               )
             else
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
+              GestureDetector(
+                onTap: () => setState(() => _flipped = !_flipped),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: theme.cardTheme.color,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.45 : 0.28),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
                   child: Column(
                     children: [
                       Text(
                         card['course']!,
                         style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        card['word']!,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
                       const SizedBox(height: 8),
                       Text(
-                        '${l10n.phraseMeaningVi}: ${card['meaning']}',
+                        _flipped ? 'Mặt sau · chạm để úp' : 'Mặt trước · chạm để lật',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: Text(
+                          _flipped ? card['back']! : card['front']!,
+                          key: ValueKey('${_currentCardIndex}_$_flipped'),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: _flipped
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.primary,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           TextButton.icon(
                             onPressed: _currentCardIndex > 0
-                                ? () => setState(() => _currentCardIndex--)
+                                ? () => setState(() {
+                                      _currentCardIndex--;
+                                      _flipped = false;
+                                    })
                                 : null,
                             icon: const Icon(Icons.arrow_back_rounded, size: 16),
                             label: const Text('Trước'),
@@ -132,7 +192,10 @@ class _LearnListViewState extends ConsumerState<LearnListView> {
                           Text('${_currentCardIndex + 1} / ${cards.length}'),
                           TextButton.icon(
                             onPressed: _currentCardIndex < cards.length - 1
-                                ? () => setState(() => _currentCardIndex++)
+                                ? () => setState(() {
+                                      _currentCardIndex++;
+                                      _flipped = false;
+                                    })
                                 : null,
                             icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                             label: const Text('Tiếp theo'),
@@ -158,13 +221,16 @@ class _LearnListViewState extends ConsumerState<LearnListView> {
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                   subtitle: Text(
-                    names[lesson.languageCode] ?? lesson.languageCode,
+                    '${names[lesson.languageCode] ?? lesson.languageCode} · ${lesson.questions.length} câu hỏi',
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                     ),
                   ),
-                  trailing: Text('${lesson.phrases.length} câu mẫu'),
+                  trailing: Text(
+                    lesson.phrases.isEmpty ? 'Kiến thức' : '${lesson.phrases.length} câu mẫu',
+                    style: const TextStyle(fontSize: 11),
+                  ),
                   onTap: () => context.go('/learn/${lesson.id}'),
                 ),
               ),
@@ -250,7 +316,7 @@ class _QuizViewState extends ConsumerState<QuizView> {
               ],
               const SizedBox(height: 16),
               Text(
-                l10n.phraseNote,
+                'Quiz kiến thức từ catalog. Chấm điểm offline nếu máy chủ chưa sẵn sàng.',
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
@@ -287,7 +353,7 @@ class _QuizViewState extends ConsumerState<QuizView> {
                 ),
               ],
               FilledButton(
-                onPressed: _loading ? null : () => _submit(l10n),
+                onPressed: _loading ? null : () => _submit(l10n, row),
                 child: Text(l10n.submit),
               ),
               if (_score != null)
@@ -302,7 +368,7 @@ class _QuizViewState extends ConsumerState<QuizView> {
     );
   }
 
-  Future<void> _submit(AppLocalizations l10n) async {
+  Future<void> _submit(AppLocalizations l10n, Lesson row) async {
     setState(() => _loading = true);
     final api = ref.read(apiClientProvider);
     try {
@@ -313,10 +379,16 @@ class _QuizViewState extends ConsumerState<QuizView> {
           _loading = false;
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Offline scoring for bundled meta quizzes (correct choice ids end with :ok).
+      var score = 0;
+      for (final question in row.questions) {
+        final selected = _answers[question.id];
+        if (selected != null && selected.endsWith(':ok')) score += 1;
+      }
       if (mounted) {
         setState(() {
-          _score = error.toString();
+          _score = '${l10n.scoreLabel(score, row.questions.length)} · offline';
           _loading = false;
         });
       }

@@ -1,5 +1,19 @@
 import '../domain/models/models.dart';
 
+const _familyPool = [
+  'Tai-Kadai',
+  'Austronesian, Chamic',
+  'Hmong-Mien',
+  'Austroasiatic, Vietic',
+];
+
+const _scriptLabels = {
+  'Latn': 'Latin',
+  'Cham': 'Akhar Thrah (Cham)',
+};
+
+const _scriptPool = ['Latin', 'Akhar Thrah (Cham)', 'Chữ Thái', 'Chữ Nôm'];
+
 SyncSnapshot snapshotFromBundledCatalog(Map<String, dynamic> json) {
   final languages = (json['languages'] as List<dynamic>)
       .map((row) => Language.fromJson(_map(row)))
@@ -16,7 +30,106 @@ SyncSnapshot snapshotFromBundledCatalog(Map<String, dynamic> json) {
     data['group_slug'] = data['slug'];
     return HeritageItem.fromJson(data);
   }).toList();
-  return SyncSnapshot(languages: languages, peoples: peoples, heritage: heritage, lessons: const []);
+  final languageByCode = {for (final language in languages) language.code: language};
+  final lessons = lessonsFromCatalogMeta(peoples: peoples, languageByCode: languageByCode);
+  return SyncSnapshot(
+    languages: languages,
+    peoples: peoples,
+    heritage: heritage,
+    lessons: lessons,
+  );
+}
+
+/// Meta lessons from catalog only: family / script / region quizzes.
+/// No ethnic-language sentences are invented here.
+List<Lesson> lessonsFromCatalogMeta({
+  required List<People> peoples,
+  required Map<String, Language> languageByCode,
+}) {
+  final lessons = <Lesson>[];
+  for (final people in peoples) {
+    final language = languageByCode[people.languageCode];
+    if (language == null || language.role != 'ethnic') continue;
+    final lessonId = 'lesson:${people.slug}';
+    final scriptLabel = _scriptLabels[language.script] ?? language.script;
+    final familyDistractors = _familyPool.where((item) => item != language.family).toList();
+    final scriptDistractors = _scriptPool.where((item) => item != scriptLabel).toList();
+    final regionDistractors = peoples
+        .where((item) => item.slug != people.slug)
+        .map((item) => item.regionVi)
+        .take(3)
+        .toList();
+
+    lessons.add(
+      Lesson(
+        id: lessonId,
+        languageCode: language.code,
+        titleVi: 'Làm quen với ${language.nameVi}',
+        titleEn: 'Getting started with ${language.nameEn}',
+        summaryVi: people.originVi ?? people.regionVi,
+        summaryEn: people.originEn ?? people.regionEn,
+        level: 'basic',
+        phrases: const [],
+        questions: [
+          _question(
+            id: '$lessonId:family',
+            promptVi: '${people.nameVi} nói ngôn ngữ thuộc họ nào?',
+            promptEn: 'Which family does the language of the ${people.nameEn} belong to?',
+            correctVi: language.family,
+            correctEn: language.family,
+            distractors: familyDistractors,
+          ),
+          _question(
+            id: '$lessonId:script',
+            promptVi: 'Chữ viết đang theo dõi cho ${language.nameVi} là gì?',
+            promptEn: 'Which writing system is tracked for ${language.nameEn}?',
+            correctVi: scriptLabel,
+            correctEn: scriptLabel,
+            distractors: scriptDistractors,
+          ),
+          _question(
+            id: '$lessonId:region',
+            promptVi: '${people.nameVi} sinh sống chủ yếu ở đâu?',
+            promptEn: 'Where do the ${people.nameEn} mainly live?',
+            correctVi: people.regionVi,
+            correctEn: people.regionEn,
+            distractors: regionDistractors,
+          ),
+        ],
+      ),
+    );
+  }
+  return lessons;
+}
+
+QuizQuestion _question({
+  required String id,
+  required String promptVi,
+  required String promptEn,
+  required String correctVi,
+  required String correctEn,
+  required List<String> distractors,
+}) {
+  final options = _rotate([correctVi, ...distractors.take(3)], id);
+  return QuizQuestion(
+    id: id,
+    promptVi: promptVi,
+    promptEn: promptEn,
+    choices: [
+      for (final label in options)
+        QuizChoice(
+          id: label == correctVi ? '$id:ok' : '$id:x${options.indexOf(label)}',
+          textVi: label,
+          textEn: label == correctVi ? correctEn : label,
+        ),
+    ],
+  );
+}
+
+List<String> _rotate(List<String> options, String key) {
+  if (options.isEmpty) return options;
+  final shift = key.codeUnits.fold<int>(0, (sum, unit) => sum + unit) % options.length;
+  return [...options.sublist(shift), ...options.sublist(0, shift)];
 }
 
 /// Builds the same snapshot from Supabase tables without copying answer keys.
@@ -54,20 +167,32 @@ SyncSnapshot snapshotFromTables({
     }).toList();
     return {...lesson, 'phrases': <Map<String, dynamic>>[], 'questions': lessonQuestions};
   }).toList();
-  return SyncSnapshot.fromJson({
-    'languages': languages,
-    'peoples': groups,
-    'heritage': heritage
+
+  final parsedLanguages = languages.map((row) => Language.fromJson(_map(row))).toList();
+  final languageByCode = {for (final language in parsedLanguages) language.code: language};
+  final peoples = groups.map((row) {
+    final data = _map(row);
+    data['family'] = languageByCode[data['language_code']]?.family ?? data['family'] ?? '';
+    return People.fromJson(data);
+  }).toList();
+
+  final remoteLessons = lessonMaps.map((row) => Lesson.fromJson(_map(row))).toList();
+  final bundled = lessonsFromCatalogMeta(peoples: peoples, languageByCode: languageByCode);
+  final mergedLessons = remoteLessons.isNotEmpty ? remoteLessons : bundled;
+
+  return SyncSnapshot(
+    languages: parsedLanguages,
+    peoples: peoples,
+    heritage: heritage
         .map(
-          (row) => {
+          (row) => HeritageItem.fromJson({
             ...row,
             'group_slug': slugByGroup[row['group_id']],
-          },
+          }),
         )
         .toList(),
-    'lessons': lessonMaps,
-    'approved_contributions': contributions.where((row) => row['status'] == 'approved').toList(),
-  });
+    lessons: mergedLessons,
+  );
 }
 
 Map<String, dynamic> _map(Object? row) => Map<String, dynamic>.from(row as Map);
