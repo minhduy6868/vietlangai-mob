@@ -69,6 +69,7 @@ class NgonSacVietApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsViewModelProvider);
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       routerConfig: ref.watch(routerProvider),
       theme: AppTheme.light(),
