@@ -73,6 +73,14 @@ class ApiClient {
     return TokenPair.fromJson(response.data!);
   }
 
+  Future<TokenPair> loginWithGoogle(String idToken) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/v1/auth/google',
+      data: {'id_token': idToken},
+    );
+    return TokenPair.fromJson(response.data!);
+  }
+
   Future<QuizScore> submitQuiz(String lessonId, Map<String, String> answers) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/v1/lessons/$lessonId/quiz',

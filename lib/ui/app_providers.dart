@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/providers.dart';
+import '../domain/language_order.dart';
 import '../domain/models/models.dart';
 import '../domain/sync_use_case.dart';
 
 export '../data/providers.dart';
 
-final languagesProvider = FutureProvider<List<Language>>((ref) {
-  return ref.watch(localStoreProvider).languages();
+final languagesProvider = FutureProvider<List<Language>>((ref) async {
+  final rows = await ref.watch(localStoreProvider).languages();
+  return sortedForTranslate(rows);
 });
 
 final peoplesProvider = FutureProvider<List<People>>((ref) {

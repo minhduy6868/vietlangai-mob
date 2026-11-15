@@ -1,3 +1,4 @@
+import '../data/catalog_mapping.dart';
 import '../data/local_store.dart';
 import '../domain/models/models.dart';
 
@@ -26,7 +27,13 @@ class SyncUseCase {
   Future<SyncReport> run() async {
     try {
       final snapshot = await catalog.pull();
-      await local.replaceSnapshot(snapshot);
+      final languageByCode = {for (final language in snapshot.languages) language.code: language};
+      final lessons = snapshot.lessons.isNotEmpty
+          ? snapshot.lessons
+          : lessonsFromCatalogMeta(peoples: snapshot.peoples, languageByCode: languageByCode);
+      await local.replaceSnapshot(
+        snapshot.copyWith(lessons: lessons),
+      );
       final pending = await local.pendingContributions();
       if (pending.isNotEmpty) {
         final saved = await contributions.push(pending);

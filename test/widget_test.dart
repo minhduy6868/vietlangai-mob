@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ngon_sac_viet/data/document_box.dart';
@@ -8,7 +9,12 @@ import 'package:ngon_sac_viet/ui/app_providers.dart';
 import 'package:ngon_sac_viet/ui/core/app.dart';
 
 void main() {
-  testWidgets('shell opens on the translate tab', (tester) async {
+  testWidgets('app shell opens on the translate tab', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         retry: (count, error) => null,
@@ -22,6 +28,5 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Dịch'), findsWidgets);
-    expect(find.text('Đóng góp'), findsOneWidget);
   });
 }

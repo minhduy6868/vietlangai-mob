@@ -9,11 +9,17 @@ import 'services/api_client.dart';
 import 'services/catalog_sources.dart';
 import 'services/token_store.dart';
 
-const apiBaseUrl = String.fromEnvironment('API_BASE', defaultValue: 'http://127.0.0.1:8000');
+const apiBaseUrl = String.fromEnvironment(
+  'API_BASE',
+  defaultValue: 'http://127.0.0.1:8000',
+);
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+const googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
 
-final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore(const FlutterSecureStorage()));
+final tokenStoreProvider = Provider<TokenStore>(
+  (ref) => TokenStore(const FlutterSecureStorage()),
+);
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -38,7 +44,9 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(dioProvider)));
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => ApiClient(ref.watch(dioProvider)),
+);
 
 final syncUseCaseProvider = Provider<SyncUseCase>((ref) {
   final api = ref.watch(apiClientProvider);
@@ -60,6 +68,8 @@ class _SupabaseTables implements TableReader {
   @override
   Future<List<Map<String, dynamic>>> select(String table) async {
     final rows = await _client.from(table).select();
-    return (rows as List<dynamic>).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+    return (rows as List<dynamic>)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
   }
 }

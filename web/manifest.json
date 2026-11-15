@@ -1,11 +1,11 @@
 {
-    "name": "ngon_sac_viet",
-    "short_name": "ngon_sac_viet",
+    "name": "Ngôn Sắc Việt",
+    "short_name": "Ngôn Sắc Việt",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8F5EE",
+    "theme_color": "#8B261E",
+    "description": "Dịch, học và bảo tồn tiếng dân tộc Việt Nam.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

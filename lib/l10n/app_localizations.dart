@@ -236,6 +236,30 @@ abstract class AppLocalizations {
   /// **'Translate'**
   String get translate;
 
+  /// No description provided for @translateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefer ethnic language ↔ Vietnamese. English only goes through Vietnamese.'**
+  String get translateHint;
+
+  /// No description provided for @swapLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap languages'**
+  String get swapLanguages;
+
+  /// No description provided for @viaVietnamese.
+  ///
+  /// In en, this message translates to:
+  /// **'via Vietnamese'**
+  String get viaVietnamese;
+
+  /// No description provided for @modelNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviewed translation pair for this direction yet. Contribute an ethnic ↔ Vietnamese sentence for review.'**
+  String get modelNotReady;
+
   /// No description provided for @result.
   ///
   /// In en, this message translates to:
@@ -281,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @targetText.
   ///
   /// In en, this message translates to:
-  /// **'Vietnamese or English meaning'**
+  /// **'Vietnamese meaning'**
   String get targetText;
 
   /// No description provided for @note.
@@ -355,6 +379,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Example sentences appear only after a reviewer approves them. This lesson does not invent phrases.'**
   String get phraseNote;
+
+  /// No description provided for @approvedPhrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved example sentences'**
+  String get approvedPhrases;
+
+  /// No description provided for @phraseMeaningVi.
+  ///
+  /// In en, this message translates to:
+  /// **'Vietnamese meaning'**
+  String get phraseMeaningVi;
 
   /// No description provided for @account.
   ///

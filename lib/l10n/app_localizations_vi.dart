@@ -78,6 +78,20 @@ class AppLocalizationsVi extends AppLocalizations {
   String get translate => 'Dịch';
 
   @override
+  String get translateHint =>
+      'Ưu tiên dịch tiếng dân tộc ↔ tiếng Việt. Tiếng Anh chỉ đi qua tiếng Việt.';
+
+  @override
+  String get swapLanguages => 'Đổi chiều dịch';
+
+  @override
+  String get viaVietnamese => 'qua tiếng Việt';
+
+  @override
+  String get modelNotReady =>
+      'Chưa có cặp dịch đã duyệt cho hướng này. Hãy đóng góp câu dân tộc ↔ Việt để người rà soát duyệt.';
+
+  @override
   String get result => 'Kết quả';
 
   @override
@@ -100,7 +114,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get sourceText => 'Câu tiếng dân tộc';
 
   @override
-  String get targetText => 'Nghĩa tiếng Việt hoặc tiếng Anh';
+  String get targetText => 'Nghĩa tiếng Việt';
 
   @override
   String get note => 'Đã đối chiếu ở đâu';
@@ -141,6 +155,12 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get phraseNote =>
       'Câu mẫu chỉ hiện sau khi người rà soát duyệt. Bài học không tự bịa câu.';
+
+  @override
+  String get approvedPhrases => 'Câu mẫu đã duyệt';
+
+  @override
+  String get phraseMeaningVi => 'Nghĩa tiếng Việt';
 
   @override
   String get account => 'Tài khoản';

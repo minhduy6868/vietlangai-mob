@@ -78,6 +78,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get translate => 'Translate';
 
   @override
+  String get translateHint =>
+      'Prefer ethnic language ↔ Vietnamese. English only goes through Vietnamese.';
+
+  @override
+  String get swapLanguages => 'Swap languages';
+
+  @override
+  String get viaVietnamese => 'via Vietnamese';
+
+  @override
+  String get modelNotReady =>
+      'No reviewed translation pair for this direction yet. Contribute an ethnic ↔ Vietnamese sentence for review.';
+
+  @override
   String get result => 'Result';
 
   @override
@@ -100,7 +114,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceText => 'Ethnic-language sentence';
 
   @override
-  String get targetText => 'Vietnamese or English meaning';
+  String get targetText => 'Vietnamese meaning';
 
   @override
   String get note => 'Where this pair was checked';
@@ -141,6 +155,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get phraseNote =>
       'Example sentences appear only after a reviewer approves them. This lesson does not invent phrases.';
+
+  @override
+  String get approvedPhrases => 'Approved example sentences';
+
+  @override
+  String get phraseMeaningVi => 'Vietnamese meaning';
 
   @override
   String get account => 'Account';
