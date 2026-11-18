@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../../data/session_profile.dart';
 import '../../../../domain/models/models.dart';
 import '../../../app_providers.dart';
 import '../../../core/app_feedback.dart';
 import '../../settings/view_models/settings_view_model.dart';
+import '../view_models/contribute_view_model.dart';
 
 class ContributeView extends ConsumerStatefulWidget {
   const ContributeView({super.key});
@@ -527,35 +527,33 @@ class _ContributeViewState extends ConsumerState<ContributeView> {
 
   Future<void> _save(AppLocalizations l10n) async {
     final language = _selectedLanguageCode;
-    final source = _sourceController.text.trim();
-    final target = _targetController.text.trim();
-    if (language == null || source.isEmpty || target.isEmpty) {
+    if (language == null) {
       _show('Vui lòng điền đầy đủ câu nguồn và câu đích');
       return;
     }
     setState(() => _saving = true);
-    final row = Contribution(
-      clientId: const Uuid().v4(),
-      languageCode: language,
-      sourceLang: language,
-      targetLang: 'vi',
-      sourceText: source,
-      targetText: target,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-      status: 'pending',
-    );
-    await ref.read(localStoreProvider).saveContribution(row);
-    ref.invalidate(contributionsProvider);
-    if (mounted) {
-      setState(() {
-        _sourceController.clear();
-        _targetController.clear();
-        _noteController.clear();
-        _saving = false;
-      });
-      Navigator.of(context, rootNavigator: true).pop();
-      _show(l10n.offlineSaved);
+    final error = await ref.read(contributeViewModelProvider.notifier).savePending(
+          ContributeSaveInput(
+            languageCode: language,
+            sourceText: _sourceController.text,
+            targetText: _targetController.text,
+            note: _noteController.text,
+          ),
+        );
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _saving = false);
+      _show(error);
+      return;
     }
+    setState(() {
+      _sourceController.clear();
+      _targetController.clear();
+      _noteController.clear();
+      _saving = false;
+    });
+    Navigator.of(context, rootNavigator: true).pop();
+    _show(l10n.offlineSaved);
   }
 
   void _show(String message, {AppFeedbackTone tone = AppFeedbackTone.info}) {
