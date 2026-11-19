@@ -4,154 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../../data/local_store.dart';
-import '../../../../data/services/api_client.dart';
 import '../../../../data/services/ocr_engine.dart';
-import '../../../../data/wiring.dart';
 import '../../../../domain/language_order.dart';
 import '../../../../domain/models/models.dart';
 import '../../../../domain/recognize_text.dart';
 import '../../../app_providers.dart';
 import '../../../core/app_feedback.dart';
 import '../../settings/view_models/settings_view_model.dart';
-
-class TranslateUiState {
-  const TranslateUiState({
-    this.loading = false,
-    this.result,
-    this.error,
-    this.pronunciation,
-    this.culturalNote,
-    this.fromGlossary = false,
-  });
-
-  final bool loading;
-  final TranslationResult? result;
-  final String? error;
-  final String? pronunciation;
-  final String? culturalNote;
-  final bool fromGlossary;
-
-  TranslateUiState copyWith({
-    bool? loading,
-    TranslationResult? result,
-    String? error,
-    String? pronunciation,
-    String? culturalNote,
-    bool? fromGlossary,
-    bool clearError = false,
-    bool clearResult = false,
-  }) {
-    return TranslateUiState(
-      loading: loading ?? this.loading,
-      result: clearResult ? result : result ?? this.result,
-      error: clearError ? error : error ?? this.error,
-      pronunciation: pronunciation ?? this.pronunciation,
-      culturalNote: culturalNote ?? this.culturalNote,
-      fromGlossary: fromGlossary ?? this.fromGlossary,
-    );
-  }
-}
-
-class TranslateViewModel extends Notifier<TranslateUiState> {
-  @override
-  TranslateUiState build() => const TranslateUiState();
-
-  Future<void> translate(String text, String source, String target) async {
-    if (text.trim().isEmpty) return;
-    state = state.copyWith(
-      loading: true,
-      clearError: true,
-      clearResult: true,
-      pronunciation: null,
-      culturalNote: null,
-      fromGlossary: false,
-    );
-    final store = ref.read(localStoreProvider);
-    final api = ref.read(apiClientProvider);
-
-    try {
-      final result = await api.guard(
-        api.translateText(text: text, sourceLang: source, targetLang: target),
-      );
-      await _persistHistory(
-        store,
-        sourceText: text,
-        targetText: result.text,
-        from: source,
-        to: target,
-        engine: result.engine,
-      );
-      state = state.copyWith(loading: false, result: result, fromGlossary: false);
-    } on ApiException catch (error) {
-      final hit = await store.glossaryLookup(text: text, from: source, to: target);
-      if (hit != null) {
-        final result = TranslationResult(
-          text: hit.target,
-          sourceLang: source,
-          targetLang: target,
-          route: '$source>$target',
-          engine: 'glossary',
-          warnings: const ['Tra từ offline từ cặp đã duyệt / lịch sử máy.'],
-        );
-        await _persistHistory(
-          store,
-          sourceText: text,
-          targetText: hit.target,
-          from: source,
-          to: target,
-          engine: 'glossary',
-        );
-        state = state.copyWith(loading: false, result: result, fromGlossary: true);
-        return;
-      }
-      state = state.copyWith(loading: false, error: error.message);
-    } catch (error) {
-      final hit = await store.glossaryLookup(text: text, from: source, to: target);
-      if (hit != null) {
-        final result = TranslationResult(
-          text: hit.target,
-          sourceLang: source,
-          targetLang: target,
-          route: '$source>$target',
-          engine: 'glossary',
-          warnings: const ['Tra từ offline từ cặp đã duyệt / lịch sử máy.'],
-        );
-        state = state.copyWith(loading: false, result: result, fromGlossary: true);
-        return;
-      }
-      state = state.copyWith(loading: false, error: error.toString());
-    }
-  }
-
-  Future<void> _persistHistory(
-    LocalStore store, {
-    required String sourceText,
-    required String targetText,
-    required String from,
-    required String to,
-    required String engine,
-  }) {
-    return store.addHistory(
-      TranslationHistoryItem(
-        id: const Uuid().v4(),
-        source: sourceText.trim(),
-        target: targetText.trim(),
-        from: from,
-        to: to,
-        at: DateTime.now().toIso8601String(),
-        engine: engine,
-      ),
-    );
-  }
-}
-
-final translateViewModelProvider =
-    NotifierProvider<TranslateViewModel, TranslateUiState>(
-  TranslateViewModel.new,
-);
+import '../view_models/translate_view_model.dart';
 
 class TranslateView extends ConsumerStatefulWidget {
   const TranslateView({super.key});

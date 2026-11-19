@@ -4,12 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 
-import '../../../../data/services/google_auth.dart';
-import '../../../../data/session_profile.dart';
-import '../../../../data/wiring.dart';
 import '../../../core/app_feedback.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/brand_assets.dart';
+import '../view_models/auth_view_model.dart';
+import '../widgets/auth_form_widgets.dart';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({this.initialRegister = false, super.key});
@@ -147,7 +146,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _GoogleButton(
+                      GoogleSignInButton(
                         loading: _googleLoading,
                         onPressed: _loading ? null : _google,
                       ),
@@ -177,20 +176,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         ],
                       ),
                       const SizedBox(height: 18),
-                      _AuthField(
+                      AuthTextField(
                         controller: _email,
                         label: l10n.email,
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 12),
-                      _AuthField(
+                      AuthTextField(
                         controller: _password,
                         label: l10n.password,
                         obscure: true,
                       ),
                       if (_register) ...[
                         const SizedBox(height: 12),
-                        _AuthField(controller: _name, label: l10n.displayName),
+                        AuthTextField(controller: _name, label: l10n.displayName),
                       ],
                       const SizedBox(height: 22),
                       SizedBox(
@@ -242,178 +241,47 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   Future<void> _submit() async {
     setState(() => _loading = true);
-    final api = ref.read(apiClientProvider);
-    try {
-      final tokens = _register
-          ? await api.guard(
-              api.register(
-                _email.text.trim(),
-                _password.text,
-                _name.text.trim(),
-              ),
-            )
-          : await api.guard(api.login(_email.text.trim(), _password.text));
-      await ref.read(tokenStoreProvider).save(tokens);
-      await ref.read(sessionProfileProvider.notifier).save(
-            displayName: _register
-                ? _name.text.trim()
-                : (_name.text.trim().isEmpty ? _email.text.trim() : _name.text.trim()),
-            email: _email.text.trim(),
-          );
-      if (!mounted) return;
-      showAppSnack(
-        context,
-        _register
-            ? AppLocalizations.of(context).register
-            : AppLocalizations.of(context).login,
-        tone: AppFeedbackTone.success,
-      );
+    final l10n = AppLocalizations.of(context);
+    final result = await ref.read(authViewModelProvider.notifier).submitEmail(
+          register: _register,
+          email: _email.text.trim(),
+          password: _password.text,
+          displayName: _name.text.trim(),
+          successLoginLabel: l10n.login,
+          successRegisterLabel: l10n.register,
+        );
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (result.ok) {
+      showAppSnack(context, result.message!, tone: AppFeedbackTone.success);
       context.go('/translate');
-    } catch (error) {
-      if (!mounted) return;
-      await showAppAlert(
-        context,
-        title: AppLocalizations.of(context).account,
-        message: error.toString(),
-        tone: AppFeedbackTone.error,
-      );
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      return;
     }
+    await showAppAlert(
+      context,
+      title: l10n.account,
+      message: result.error!,
+      tone: AppFeedbackTone.error,
+    );
   }
 
   Future<void> _google() async {
     setState(() => _googleLoading = true);
-    final api = ref.read(apiClientProvider);
-    try {
-      final idToken = await signInWithGoogleIdToken();
-      final tokens = await api.guard(api.loginWithGoogle(idToken));
-      await ref.read(tokenStoreProvider).save(tokens);
-      await ref.read(sessionProfileProvider.notifier).save(
-            displayName: 'Google',
-            email: _email.text.trim().isEmpty ? 'google@user' : _email.text.trim(),
-          );
-      if (!mounted) return;
-      showAppSnack(
-        context,
-        'Đăng nhập Google thành công',
-        tone: AppFeedbackTone.success,
-      );
+    final result = await ref.read(authViewModelProvider.notifier).submitGoogle(
+          emailFallback: _email.text.trim(),
+        );
+    if (!mounted) return;
+    setState(() => _googleLoading = false);
+    if (result.ok) {
+      showAppSnack(context, result.message!, tone: AppFeedbackTone.success);
       context.go('/translate');
-    } catch (error) {
-      if (!mounted) return;
-      await showAppAlert(
-        context,
-        title: 'Google',
-        message: error.toString(),
-        tone: AppFeedbackTone.error,
-      );
-    } finally {
-      if (mounted) setState(() => _googleLoading = false);
+      return;
     }
-  }
-}
-
-class _AuthField extends StatelessWidget {
-  const _AuthField({
-    required this.controller,
-    required this.label,
-    this.obscure = false,
-    this.keyboardType,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final bool obscure;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      style: GoogleFonts.beVietnamPro(color: Colors.white),
-      cursorColor: const Color(0xFFC4A35A),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.beVietnamPro(color: Colors.white54),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-          borderSide: BorderSide(color: Color(0xFFC4A35A), width: 1.4),
-        ),
-      ),
-    );
-  }
-}
-
-class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.loading, required this.onPressed});
-
-  final bool loading;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          backgroundColor: Colors.white.withValues(alpha: 0.04),
-        ),
-        child: loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 18,
-                    height: 18,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'G',
-                      style: GoogleFonts.beVietnamPro(
-                        color: const Color(0xFF4285F4),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Tiếp tục với Google',
-                    style: GoogleFonts.beVietnamPro(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-      ),
+    await showAppAlert(
+      context,
+      title: 'Google',
+      message: result.error!,
+      tone: AppFeedbackTone.error,
     );
   }
 }
