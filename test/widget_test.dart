@@ -11,7 +11,7 @@ import 'package:ngon_sac_viet/ui/core/app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('app shell opens on the translate tab', (tester) async {
+  testWidgets('app opens on translate tab for guests', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

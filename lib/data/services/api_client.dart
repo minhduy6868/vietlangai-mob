@@ -81,6 +81,28 @@ class ApiClient {
     return TokenPair.fromJson(response.data!);
   }
 
+  Future<TokenPair> refresh(String refreshToken) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/v1/auth/refresh',
+      data: {'refresh_token': refreshToken},
+      options: Options(extra: {'skipAuthRefresh': true}),
+    );
+    return TokenPair.fromJson(response.data!);
+  }
+
+  Future<void> logout(String refreshToken) async {
+    await _dio.post<void>(
+      '/v1/auth/logout',
+      data: {'refresh_token': refreshToken},
+      options: Options(extra: {'skipAuthRefresh': true}),
+    );
+  }
+
+  Future<UserProfile> me() async {
+    final response = await _dio.get<Map<String, dynamic>>('/v1/auth/me');
+    return UserProfile.fromJson(response.data!);
+  }
+
   Future<QuizScore> submitQuiz(String lessonId, Map<String, String> answers) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/v1/lessons/$lessonId/quiz',

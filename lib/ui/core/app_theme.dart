@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand colors from Figma: Terracotta Red, Warm Amber, Jade Accent
-  static const primaryColor = Color(0xFF8B261E);
-  static const primaryDarkColor = Color(0xFFE55D50);
-  static const accentAmber = Color(0xFFC98A2C);
+  // Design system: Primary #A83232, Secondary #D5A34A, Background #F8F5EF
+  static const primaryColor = Color(0xFFA83232);
+  static const primaryDarkColor = Color(0xFFC44545);
+  static const accentAmber = Color(0xFFD5A34A);
   static const accentJade = Color(0xFF2D7D5B);
 
-  static const lightBg = Color(0xFFF8F5EE);
+  static const lightBg = Color(0xFFF8F5EF);
   static const lightSurface = Color(0xFFFFFFFF);
   static const lightCardBorder = Color(0xFFEBE5DF);
 

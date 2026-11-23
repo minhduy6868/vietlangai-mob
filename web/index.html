@@ -46,6 +46,25 @@
   </style>
 </head>
 <body>
+  <script>
+    // Legacy hash routes (/app/#/login) → path routes (/app/login)
+    (function () {
+      var hash = location.hash || "";
+      if (hash.indexOf("#/") === 0) {
+        var route = hash.slice(1); // "/login"
+        if (route === "/welcome") route = "/translate";
+        var base = location.pathname.replace(/\/?$/, "/");
+        if (base.indexOf("/app") === -1) base = "/app/";
+        // pathname is often /app/ or /app/index.html
+        var root = location.pathname.replace(/\/index\.html$/, "/");
+        if (!root.endsWith("/")) {
+          root = root.replace(/\/[^/]*$/, "/");
+        }
+        if (root.indexOf("/app") === -1) root = "/app/";
+        location.replace(root.replace(/\/?$/, "/") + route.replace(/^\//, ""));
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
