@@ -3,6 +3,7 @@ import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/view_models/auth_session.dart';
 import '../features/auth/views/login_view.dart';
 import '../features/contribute/views/contribute_view.dart';
 import '../features/heritage/views/heritage_views.dart';
@@ -10,15 +11,36 @@ import '../features/learn/views/learn_views.dart';
 import '../features/settings/view_models/settings_view_model.dart';
 import '../features/settings/views/settings_view.dart';
 import '../features/translate/views/translate_view.dart';
+import 'app_routes.dart';
 import 'app_shell.dart';
 import 'app_theme.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final refresh = _AuthRefresh(ref);
+  ref.onDispose(refresh.dispose);
+
   return GoRouter(
-    // Marketing site is static HTML at /. Flutter boots under /app/.
-    initialLocation: '/translate',
+    // Must follow browser path (/app/login → /login), not always /translate.
+    initialLocation: resolveInitialLocation(),
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final authAsync = ref.read(authSessionProvider);
+      final loc = state.matchedLocation;
+      final onAuthGate = loc == '/login' || loc == '/register';
+      // Never bounce auth screens while session is still restoring.
+      if (authAsync.isLoading || !authAsync.hasValue) {
+        return null;
+      }
+      final auth = authAsync.requireValue;
+      // Only signed-in users leave login/register → translate.
+      if (auth.isAuthenticated && onAuthGate) {
+        return '/translate';
+      }
+      return null;
+    },
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/translate'),
+      GoRoute(path: '/welcome', redirect: (context, state) => '/translate'),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
@@ -81,9 +103,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           initialRegister: state.uri.queryParameters['mode'] == 'register',
         ),
       ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const LoginView(initialRegister: true),
+      ),
     ],
   );
 });
+
+class _AuthRefresh extends ChangeNotifier {
+  _AuthRefresh(this._ref) {
+    _subscription = _ref.listen(authSessionProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+
+  final Ref _ref;
+  late final ProviderSubscription<AsyncValue<AuthState>> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
+}
 
 class NgonSacVietApp extends ConsumerWidget {
   const NgonSacVietApp({super.key});

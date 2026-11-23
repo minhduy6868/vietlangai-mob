@@ -14,6 +14,17 @@ class TokenStore {
 
   Future<String?> readAccess() => _storage.read(key: 'access');
 
+  Future<String?> readRefresh() => _storage.read(key: 'refresh');
+
+  Future<void> clearRefresh() => _storage.delete(key: 'refresh');
+
+  Future<bool> hasTokens() async {
+    final access = await readAccess();
+    final refresh = await readRefresh();
+    return (access != null && access.isNotEmpty) ||
+        (refresh != null && refresh.isNotEmpty);
+  }
+
   Future<void> clear() async {
     await _storage.delete(key: 'access');
     await _storage.delete(key: 'refresh');

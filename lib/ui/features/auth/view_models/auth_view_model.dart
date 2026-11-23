@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/services/google_auth.dart';
 import '../../../../data/session_profile.dart';
 import '../../../../data/wiring.dart';
+import 'auth_session.dart';
 
 class AuthActionResult {
   const AuthActionResult.success({
@@ -39,12 +40,12 @@ class AuthViewModel extends Notifier<void> {
           ? await api.guard(api.register(email, password, displayName))
           : await api.guard(api.login(email, password));
       await ref.read(tokenStoreProvider).save(tokens);
+      final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
-            displayName: register
-                ? displayName
-                : (displayName.isEmpty ? email : displayName),
-            email: email,
+            displayName: user.displayName,
+            email: user.email,
           );
+      await ref.read(authSessionProvider.notifier).markAuthenticated(user);
       return AuthActionResult.success(
         message: register ? successRegisterLabel : successLoginLabel,
       );
@@ -59,10 +60,12 @@ class AuthViewModel extends Notifier<void> {
       final idToken = await signInWithGoogleIdToken();
       final tokens = await api.guard(api.loginWithGoogle(idToken));
       await ref.read(tokenStoreProvider).save(tokens);
+      final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
-            displayName: 'Google',
-            email: emailFallback.isEmpty ? 'google@user' : emailFallback,
+            displayName: user.displayName,
+            email: user.email.isEmpty ? emailFallback : user.email,
           );
+      await ref.read(authSessionProvider.notifier).markAuthenticated(user);
       return const AuthActionResult.success(
         message: 'Đăng nhập Google thành công',
         isGoogle: true,

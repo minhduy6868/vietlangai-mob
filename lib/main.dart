@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,6 +23,10 @@ const _catalogBundleVersion = '2-lessons-meta';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Path URLs under /app/: /app/login, /app/register, /app/translate
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
   }
@@ -58,11 +64,13 @@ class _BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<_BootstrapApp> {
-  bool _ready = false;
+  late bool _ready = kIsWeb; // Web: no splash — preserves /app/login|/register
 
   @override
   void initState() {
     super.initState();
+    if (_ready) return;
+    // Native: keep branded splash.
     Future<void>.delayed(const Duration(milliseconds: 1600), () {
       if (mounted) setState(() => _ready = true);
     });
