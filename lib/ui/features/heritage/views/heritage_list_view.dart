@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 
+import '../../../../domain/models/models.dart';
 import '../../../app_providers.dart';
 import '../../../core/async_value_view.dart';
 import '../../settings/view_models/settings_view_model.dart';
+import 'heritage_feed_pane.dart';
 
 class HeritageListView extends ConsumerStatefulWidget {
   const HeritageListView({super.key});
@@ -15,18 +17,10 @@ class HeritageListView extends ConsumerStatefulWidget {
 }
 
 class _HeritageListViewState extends ConsumerState<HeritageListView> {
+  bool _showSocialFeed = true;
   String _selectedCategory = 'Tất cả';
+  String _feedFilterSlug = 'all';
   final _searchController = TextEditingController();
-
-  // Categories follow the five peoples in shared/languages.json only.
-  final List<String> _categories = [
-    'Tất cả',
-    'Tày',
-    'Ê Đê',
-    'Chăm',
-    'H\'Mông',
-    'Jrai',
-  ];
 
   final List<Map<String, dynamic>> _ancientScripts = [
     {
@@ -59,317 +53,448 @@ class _HeritageListViewState extends ConsumerState<HeritageListView> {
       builder: (rows) {
         if (rows.isEmpty) return Center(child: Text(l10n.emptyPeoples));
 
-        // Filter based on search and category
+        final categories = [
+          'Tất cả',
+          for (final people in rows)
+            locale == 'vi' ? people.nameVi : people.nameEn,
+        ];
         final filteredRows = rows.where((people) {
-          final title = (locale == 'vi' ? people.nameVi : people.nameEn).toLowerCase();
-          final matchesSearch = _searchController.text.isEmpty ||
-              title.contains(_searchController.text.toLowerCase());
-          final matchesCategory = _selectedCategory == 'Tất cả' ||
+          final title = (locale == 'vi' ? people.nameVi : people.nameEn)
+              .toLowerCase();
+          final matchesSearch =
+              _searchController.text.isEmpty ||
+              title.contains(_searchController.text.toLowerCase()) ||
+              people.regionVi.toLowerCase().contains(
+                _searchController.text.toLowerCase(),
+              );
+          final matchesCategory =
+              _selectedCategory == 'Tất cả' ||
               title.contains(_selectedCategory.toLowerCase());
           return matchesSearch && matchesCategory;
         }).toList();
 
-        return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          children: [
-            // 1. Search Bar
-            TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm chữ cổ, văn hóa, ngữ hệ...',
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
+        final isWide = MediaQuery.sizeOf(context).width >= 960;
 
-            // 2. Filter Chips
-            SizedBox(
-              height: 38,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final cat = _categories[index];
-                  final isSelected = cat == _selectedCategory;
-                  return ChoiceChip(
-                    label: Text(cat),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _selectedCategory = cat);
-                    },
-                    selectedColor: theme.colorScheme.primary.withValues(alpha: isDark ? 0.3 : 0.15),
-                    labelStyle: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? theme.colorScheme.primary : null,
+        if (!isWide) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment<bool>(
+                      value: true,
+                      icon: Icon(Icons.dynamic_feed_rounded, size: 18),
+                      label: Text('Kênh Di Sản'),
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 3. Featured Hero Card (Dân tộc Chăm & Chữ Akhar Thrah)
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF38120F), const Color(0xFF1E1E22)]
-                      : [const Color(0xFF8B261E), const Color(0xFF5E1712)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                    ButtonSegment<bool>(
+                      value: false,
+                      icon: Icon(Icons.menu_book_rounded, size: 18),
+                      label: Text('10 Dân tộc'),
+                    ),
+                  ],
+                  selected: {_showSocialFeed},
+                  onSelectionChanged: (selection) {
+                    setState(() => _showSocialFeed = selection.first);
+                  },
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B261E).withValues(alpha: isDark ? 0.3 : 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
+              Expanded(
+                child: _showSocialFeed
+                    ? HeritageFeedPane(
+                        peoples: rows,
+                        externalPeopleSlug: _feedFilterSlug,
+                        onPeopleFilterChanged: (slug) => _feedFilterSlug = slug,
+                      )
+                    : _buildExplorePane(
+                        context,
+                        rows: rows,
+                        categories: categories,
+                        filteredRows: filteredRows,
+                        locale: locale,
+                        isDark: isDark,
+                        filterFeedOnTap: false,
+                      ),
+              ),
+            ],
+          );
+        }
+
+        // Studio 2-column Split Portal on Desktop
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1240),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4AC0D).withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFD4AC0D), width: 1),
-                    ),
-                    child: const Text(
-                      'TIÊU ĐIỂM DI SẢN',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFFFFE082),
-                        letterSpacing: 0.6,
-                      ),
+                  Expanded(
+                    flex: 62,
+                    child: HeritageFeedPane(
+                      peoples: rows,
+                      embeddedInScroll: true,
+                      externalPeopleSlug: _feedFilterSlug,
+                      onPeopleFilterChanged: (slug) =>
+                          setState(() => _feedFilterSlug = slug),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Dân tộc Chăm & Chữ Akhar Thrah',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Hệ thống văn tự cổ của người Chăm có nguồn gốc từ chữ Brahmi Ấn Độ, được khắc trên bia đá và lưu truyền qua ngàn năm.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.45,
-                      color: Colors.white.withValues(alpha: 0.88),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF8B261E),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    ),
-                    onPressed: () {
-                      final cham = rows.firstWhere(
-                        (r) => r.slug.contains('cham') || r.nameVi.contains('Chăm'),
-                        orElse: () => rows.first,
-                      );
-                      context.go('/heritage/${cham.slug}');
-                    },
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                    label: const Text(
-                      'Khám phá ngay',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    flex: 38,
+                    child: _buildExplorePane(
+                      context,
+                      rows: rows,
+                      categories: categories,
+                      filteredRows: filteredRows,
+                      locale: locale,
+                      isDark: isDark,
+                      embeddedInScroll: true,
+                      filterFeedOnTap: true,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 22),
-
-            // 4. Section: Ký tự cổ & Ngữ hệ
-            Row(
-              children: [
-                Text(
-                  'Ký tự cổ & Ngữ hệ',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '2 hệ thống chữ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Cards for Ancient Scripts
-            for (final script in _ancientScripts)
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  script['title'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${script['ethnic']} • ${script['family']}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: (script['color'] as Color).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              script['count'],
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: script['color'] as Color,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF161619) : const Color(0xFFFBF8F3),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF28282C) : const Color(0xFFEFE9E0),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            script['glyphs'],
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 8,
-                              color: script['color'] as Color,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            final match = rows.firstWhere(
-                              (r) => r.slug.contains(script['slug']) || r.nameVi.contains(script['slug']),
-                              orElse: () => rows.first,
-                            );
-                            context.go('/heritage/${match.slug}');
-                          },
-                          icon: const Icon(Icons.menu_book_rounded, size: 16),
-                          label: const Text('Xem bảng chữ', style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 12),
-
-            // 5. Danh mục các dân tộc
-            Text(
-              'Danh bạ dân tộc & tiếng bản ngữ',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.2,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            for (final people in filteredRows)
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    child: Text(
-                      people.nameVi.isNotEmpty ? people.nameVi.substring(0, 1) : 'D',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    locale == 'vi' ? people.nameVi : people.nameEn,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
-                  subtitle: Text(
-                    '${people.family} • ${locale == 'vi' ? people.regionVi : people.regionEn}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                  onTap: () => context.go('/heritage/${people.slug}'),
-                ),
-              ),
-          ],
+          ),
         );
       },
     );
   }
-}
 
+  Widget _buildExplorePane(
+    BuildContext context, {
+    required List<People> rows,
+    required List<String> categories,
+    required List<People> filteredRows,
+    required String locale,
+    required bool isDark,
+    bool embeddedInScroll = false,
+    bool filterFeedOnTap = false,
+  }) {
+    final theme = Theme.of(context);
+    final items = <Widget>[
+      TextField(
+        controller: _searchController,
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm dân tộc, vùng miền, chữ cổ...',
+          hintStyle: TextStyle(
+            fontSize: 13.5,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
+      SizedBox(
+        height: 36,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: categories.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            final isSelected = cat == _selectedCategory;
+            return ChoiceChip(
+              label: Text(cat, style: const TextStyle(fontSize: 12)),
+              visualDensity: VisualDensity.compact,
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) setState(() => _selectedCategory = cat);
+              },
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 14),
+      Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF38120F), const Color(0xFF1E1E22)]
+                : [const Color(0xFF8B261E), const Color(0xFF5E1712)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AC0D).withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFD4AC0D), width: 1),
+              ),
+              child: const Text(
+                'TIÊU ĐIỂM DI SẢN',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFFFE082),
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Dân tộc Chăm & Chữ Akhar Thrah',
+              style: TextStyle(
+                fontSize: 18.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Hệ thống văn tự cổ nguồn gốc Brahmi được lưu truyền trên lá buông và bia đá ngàn năm.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: Colors.white.withValues(alpha: 0.88),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF8B261E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+              ),
+              onPressed: () {
+                final cham = rows.firstWhere(
+                  (r) => r.slug.contains('cham') || r.nameVi.contains('Chăm'),
+                  orElse: () => rows.first,
+                );
+                context.go('/heritage/${cham.slug}');
+              },
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text(
+                'Khám phá ngay',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+      for (final script in _ancientScripts)
+        Card(
+          margin: const EdgeInsets.only(bottom: 14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            script['title'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          Text(
+                            '${script['ethnic']} · ${script['family']}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        final match = rows.firstWhere(
+                          (r) => r.slug.contains(script['slug']),
+                          orElse: () => rows.first,
+                        );
+                        context.go('/heritage/${match.slug}');
+                      },
+                      child: const Text('Xem bảng chữ'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF161619)
+                        : const Color(0xFFFBF8F3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      script['glyphs'],
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 7,
+                        color: script['color'] as Color,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      Row(
+        children: [
+          Text(
+            'Danh bạ ${rows.length} dân tộc & tiếng bản ngữ',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (filterFeedOnTap && _feedFilterSlug != 'all') ...[
+            const Spacer(),
+            TextButton(
+              onPressed: () => setState(() => _feedFilterSlug = 'all'),
+              child: const Text('Bỏ lọc feed'),
+            ),
+          ],
+        ],
+      ),
+      const SizedBox(height: 10),
+      for (final people in filteredRows) ...[
+        _buildPeopleCard(
+          context,
+          people,
+          locale,
+          filterFeedOnTap: filterFeedOnTap,
+        ),
+        const SizedBox(height: 8),
+      ],
+    ];
+
+    if (embeddedInScroll) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: items,
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      children: items,
+    );
+  }
+
+  Widget _buildPeopleCard(
+    BuildContext context,
+    People people,
+    String locale, {
+    bool filterFeedOnTap = false,
+  }) {
+    final theme = Theme.of(context);
+    final name = locale == 'vi' ? people.nameVi : people.nameEn;
+    final region = locale == 'vi' ? people.regionVi : people.regionEn;
+    final cleanLabel = name.replaceFirst('Người ', '');
+    final isFeedSelected = filterFeedOnTap && _feedFilterSlug == people.slug;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: isFeedSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: isFeedSelected ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => filterFeedOnTap
+            ? setState(
+                () => _feedFilterSlug =
+                    _feedFilterSlug == people.slug ? 'all' : people.slug,
+              )
+            : context.go('/heritage/${people.slug}'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.12,
+                ),
+                child: Text(
+                  cleanLabel.isNotEmpty ? cleanLabel.characters.first : 'D',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${people.family} · $region',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.65,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Xem hồ sơ văn hóa',
+                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 15),
+                onPressed: () => context.go('/heritage/${people.slug}'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
