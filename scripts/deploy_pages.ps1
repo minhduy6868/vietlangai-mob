@@ -3,7 +3,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$apiBase = if ($env:API_BASE) { $env:API_BASE } else { "https://api.ngonsacviet.ourvibe.tech" }
+$apiBase = if ($env:API_BASE) { $env:API_BASE } else { "https://ngonsacviet.ourvibe.tech" }
+$ec2Origin = if ($env:EC2_ORIGIN) { $env:EC2_ORIGIN } else { "http://3.26.79.228:8000" }
 
 Write-Host "== flutter build web (/app) =="
 flutter build web --release `
@@ -13,7 +14,7 @@ flutter build web --release `
 $apkSrc = Join-Path $root "build\app\outputs\flutter-apk\app-release.apk"
 $apkDestDir = Join-Path $root "landing\downloads"
 $apkDest = Join-Path $apkDestDir "ngonsacviet-arm64.apk"
-if (-not (Test-Path $apkSrc)) {
+if (-not (Test-Path $apkSrc) -and -not (Test-Path $apkDest) -and $env:SKIP_APK -ne '1') {
   Write-Host "== flutter build apk (arm64) =="
   $env:GRADLE_USER_HOME = if ($env:GRADLE_USER_HOME) { $env:GRADLE_USER_HOME } else { "D:\tool\gradle-home" }
   flutter build apk --release --target-platform=android-arm64 --dart-define="API_BASE=$apiBase"
@@ -60,6 +61,46 @@ Copy-Item -Recurse -Force (Join-Path $root "build\web\*") (Join-Path $dist "app"
   Content-Disposition: attachment
   Cache-Control: public, max-age=3600
 "@ | Set-Content -Path (Join-Path $dist "_headers") -Encoding ascii
+
+$workerJs = @"
+const ORIGIN = '$ec2Origin';
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // Proxy API and health checks over HTTPS to EC2 backend
+    if (url.pathname.startsWith('/v1/') || url.pathname === '/health') {
+      const target = new URL(url.pathname + url.search, ORIGIN);
+      const headers = new Headers(request.headers);
+      headers.delete('host');
+      const init = {
+        method: request.method,
+        headers,
+        redirect: 'manual',
+      };
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        init.body = request.body;
+      }
+      return fetch(target.toString(), init);
+    }
+
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404) {
+      const last = url.pathname.split('/').pop() || '';
+      if (!last.includes('.')) {
+        if (url.pathname.startsWith('/app')) {
+          return env.ASSETS.fetch(new URL('/app/index.html', url.origin));
+        }
+        return env.ASSETS.fetch(new URL('/index.html', url.origin));
+      }
+    }
+    return res;
+  },
+};
+"@
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText((Join-Path $dist "_worker.js"), $workerJs.Replace("`r`n", "`n"), $utf8NoBom)
 
 Write-Host "== wrangler pages deploy =="
 npx --yes wrangler pages deploy $dist --project-name=ngonsacviet --branch=main --commit-dirty=true

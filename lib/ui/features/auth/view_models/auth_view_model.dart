@@ -64,7 +64,7 @@ class AuthViewModel extends Notifier<void> {
   Future<AuthActionResult> submitGoogle({required String emailFallback}) async {
     final api = ref.read(apiClientProvider);
     try {
-      final idToken = await signInWithGoogleIdToken();
+      final idToken = await signInWithGoogleIdToken(api: api);
       final tokens = await api.guard(api.loginWithGoogle(idToken));
       await ref.read(tokenStoreProvider).save(tokens);
       final user = await api.guard(api.me());

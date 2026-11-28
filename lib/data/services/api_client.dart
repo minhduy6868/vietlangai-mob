@@ -137,6 +137,11 @@ class ApiClient {
     return TokenPair.fromJson(response.data!);
   }
 
+  Future<String> googleClientIdConfig() async {
+    final response = await _dio.get<Map<String, dynamic>>('/v1/auth/google-config');
+    return response.data?['client_id']?.toString().trim() ?? '';
+  }
+
   Future<TokenPair> refresh(String refreshToken) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/v1/auth/refresh',
