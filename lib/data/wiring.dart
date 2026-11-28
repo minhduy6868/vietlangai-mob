@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,10 +11,14 @@ import 'services/api_client.dart';
 import 'services/catalog_sources.dart';
 import 'services/token_store.dart';
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_BASE',
-  defaultValue: 'http://127.0.0.1:8000',
-);
+const _envApiBaseUrl = String.fromEnvironment('API_BASE');
+
+/// Resolve API base URL cleanly across Web same-origin hosting and local/mobile builds.
+String get apiBaseUrl {
+  if (_envApiBaseUrl.isNotEmpty) return _envApiBaseUrl;
+  if (kIsWeb) return Uri.base.origin;
+  return 'http://127.0.0.1:8000';
+}
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 const googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');

@@ -19,8 +19,6 @@ String resolveInitialLocation() {
   if (path.length > 1 && path.endsWith('/')) {
     path = path.substring(0, path.length - 1);
   }
-  // Legacy
-  if (path == '/welcome') return '/translate';
   return path;
 }
 

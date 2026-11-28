@@ -70,6 +70,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           logoSize: 36,
         ),
         actions: [
+          IconButton(
+            tooltip: 'Trang giới thiệu',
+            onPressed: () => context.go('/welcome'),
+            icon: const Icon(Icons.home_outlined),
+          ),
           Builder(
             builder: (context) {
               final profile = ref.watch(sessionProfileProvider);

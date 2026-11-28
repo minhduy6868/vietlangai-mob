@@ -8,6 +8,7 @@ import '../features/auth/view_models/auth_session.dart';
 import '../features/auth/views/login_view.dart';
 import '../features/contribute/views/contribute_view.dart';
 import '../features/heritage/views/heritage_views.dart';
+import '../features/landing/views/landing_view.dart';
 import '../features/learn/views/learn_views.dart';
 import '../features/settings/view_models/settings_view_model.dart';
 import '../features/settings/views/settings_view.dart';
@@ -49,7 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/translate'),
-      GoRoute(path: '/welcome', redirect: (context, state) => '/translate'),
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const LandingView(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../wiring.dart';
@@ -12,7 +13,19 @@ class GoogleAuthUnavailable implements Exception {
   String toString() => message;
 }
 
-/// Returns a Google ID token for the API `/v1/auth/google` exchange.
+String? _initializedClientId;
+Future<void>? _initFuture;
+
+Future<void> _ensureInitialized(GoogleSignIn google, String clientId) {
+  if (_initializedClientId == clientId && _initFuture != null) {
+    return _initFuture!;
+  }
+  _initializedClientId = clientId;
+  _initFuture = google.initialize(clientId: clientId);
+  return _initFuture!;
+}
+
+/// Returns a Google ID token or OAuth2 access token for `/v1/auth/google`.
 Future<String> signInWithGoogleIdToken({ApiClient? api}) async {
   var clientId = googleClientId.trim();
   if (clientId.isEmpty && api != null) {
@@ -29,13 +42,41 @@ Future<String> signInWithGoogleIdToken({ApiClient? api}) async {
   }
 
   final google = GoogleSignIn.instance;
-  await google.initialize(clientId: clientId);
-  final account = await google.authenticate(
-    scopeHint: const ['email', 'profile'],
-  );
-  final token = account.authentication.idToken;
-  if (token == null || token.isEmpty) {
-    throw GoogleAuthUnavailable('Google không trả về id_token.');
+  try {
+    await _ensureInitialized(google, clientId);
+    if (kIsWeb || !google.supportsAuthenticate()) {
+      final authz = await google.authorizationClient.authorizeScopes(
+        const ['email', 'profile', 'openid'],
+      );
+      final token = authz.accessToken.trim();
+      if (token.isEmpty) {
+        throw GoogleAuthUnavailable('Google không trả về access token.');
+      }
+      return token;
+    }
+
+    final account = await google.authenticate(
+      scopeHint: const ['email', 'profile'],
+    );
+    final token = account.authentication.idToken?.trim();
+    if (token == null || token.isEmpty) {
+      throw GoogleAuthUnavailable('Google không trả về id_token.');
+    }
+    return token;
+  } on GoogleSignInException catch (exc) {
+    switch (exc.code) {
+      case GoogleSignInExceptionCode.canceled:
+        throw GoogleAuthUnavailable('Bạn đã hủy đăng nhập Google.');
+      case GoogleSignInExceptionCode.uiUnavailable:
+        throw GoogleAuthUnavailable(
+          'Trình duyệt đang chặn cửa sổ bật lên (pop-up) Google. Hãy cho phép pop-up và thử lại.',
+        );
+      default:
+        throw GoogleAuthUnavailable(
+          exc.description?.isNotEmpty == true
+              ? 'Đăng nhập Google thất bại: ${exc.description}'
+              : 'Đăng nhập Google thất bại (${exc.code.name}).',
+        );
+    }
   }
-  return token;
 }
