@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 $apiBase = if ($env:API_BASE) { $env:API_BASE } else { "https://ngonsacviet.ourvibe.tech" }
-$ec2Origin = if ($env:EC2_ORIGIN) { $env:EC2_ORIGIN } else { "http://3.26.79.228:8000" }
+$ec2Origin = if ($env:EC2_ORIGIN) { $env:EC2_ORIGIN } else { "http://ec2-3-26-79-228.ap-southeast-2.compute.amazonaws.com" }
 
 Write-Host "== flutter build web (/app) =="
 flutter build web --release `
@@ -35,10 +35,10 @@ New-Item -ItemType Directory -Force -Path (Join-Path $dist "app") | Out-Null
 Copy-Item -Recurse -Force (Join-Path $root "landing\*") $dist
 Copy-Item -Recurse -Force (Join-Path $root "build\web\*") (Join-Path $dist "app")
 
-# SPA fallback for Flutter routes under /app
+# SPA fallback for Flutter routes under /app (must precede root wildcard)
 @(
-  "/*    /index.html   200",
-  "/app/*    /app/index.html   200"
+  "/app/*    /app/index.html   200",
+  "/*    /index.html   200"
 ) | Set-Content -Path (Join-Path $dist "_redirects") -Encoding ascii
 
 @"
@@ -90,9 +90,9 @@ export default {
       const last = url.pathname.split('/').pop() || '';
       if (!last.includes('.')) {
         if (url.pathname.startsWith('/app')) {
-          return env.ASSETS.fetch(new URL('/app/index.html', url.origin));
+          return env.ASSETS.fetch(new URL('/app/', url.origin));
         }
-        return env.ASSETS.fetch(new URL('/index.html', url.origin));
+        return env.ASSETS.fetch(new URL('/', url.origin));
       }
     }
     return res;
