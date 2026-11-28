@@ -53,12 +53,41 @@ class _TranslateViewState extends ConsumerState<TranslateView> {
     super.dispose();
   }
 
+  String _extractPrimaryTranslation(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('Chưa có câu ') ||
+        trimmed.startsWith('Chưa tìm thấy câu ')) {
+      return '';
+    }
+    final lines = trimmed
+        .split('\n')
+        .map((line) => line.trim())
+        .where(
+          (line) =>
+              line.isNotEmpty &&
+              !line.startsWith('(Đối chiếu:') &&
+              !line.startsWith('(Việt:'),
+        )
+        .toList();
+    if (lines.isEmpty) return '';
+    return lines.first.replaceFirst(RegExp(r'^•\s*'), '').trim();
+  }
+
   void _swapLanguages() {
+    final currentResult = ref.read(translateViewModelProvider).result?.text ?? '';
+    final carryText = _extractPrimaryTranslation(currentResult);
     setState(() {
       final temp = _sourceCode;
       _sourceCode = _targetCode;
       _targetCode = temp;
+      if (carryText.isNotEmpty) {
+        _textController.text = carryText;
+      }
     });
+    if (carryText.isNotEmpty && _sourceCode != null && _targetCode != null) {
+      _runTranslate(carryText);
+    }
   }
 
   Future<void> _runTranslate([String? overrideText]) async {
