@@ -1,0 +1,51 @@
+name: CI/CD - Ngon Sac Viet Web & App
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Pub get, analyze, and test
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Build web release
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          API_BASE="http://${EC2_HOST:-3.26.79.228}:8000"
+          flutter build web --release --dart-define="API_BASE=${API_BASE}"
+      - name: Deploy Flutter Web to EC2 Nginx
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          if [ -z "$EC2_HOST" ] || [ -z "$EC2_SSH_KEY" ]; then
+            echo "EC2_HOST or EC2_SSH_KEY not set; skipping deploy."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_ec2
+          chmod 600 ~/.ssh/id_ec2
+          USER_NAME="${EC2_USER:-ubuntu}"
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ec2" build/web/ "${USER_NAME}@${EC2_HOST}:/tmp/vietlangai-web/"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ec2 "${USER_NAME}@${EC2_HOST}" '
+            set -e
+            sudo mkdir -p /var/www/vietlangai
+            sudo rsync -a --delete /tmp/vietlangai-web/ /var/www/vietlangai/
+            sudo chown -R www-data:www-data /var/www/vietlangai
+            sudo nginx -t && sudo systemctl reload nginx
+          '
