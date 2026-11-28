@@ -85,13 +85,15 @@ export default {
       return fetch(target.toString(), init);
     }
 
+    // Deep-linked Flutter SPA routes under /app/*
+    const last = url.pathname.split('/').pop() || '';
+    if (url.pathname.startsWith('/app') && url.pathname !== '/app/' && !last.includes('.')) {
+      return env.ASSETS.fetch(new URL('/app/', url.origin));
+    }
+
     const res = await env.ASSETS.fetch(request);
     if (res.status === 404) {
-      const last = url.pathname.split('/').pop() || '';
       if (!last.includes('.')) {
-        if (url.pathname.startsWith('/app')) {
-          return env.ASSETS.fetch(new URL('/app/', url.origin));
-        }
         return env.ASSETS.fetch(new URL('/', url.origin));
       }
     }
