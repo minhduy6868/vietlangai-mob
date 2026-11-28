@@ -70,6 +70,17 @@ class _AppShellState extends ConsumerState<AppShell> {
           logoSize: 36,
         ),
         actions: [
+          Builder(
+            builder: (context) {
+              final profile = ref.watch(sessionProfileProvider);
+              if (!profile.isStaff) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: 'Quản trị',
+                onPressed: () => context.push('/admin'),
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+              );
+            },
+          ),
           IconButton(
             tooltip: l10n.sync,
             onPressed: () => _sync(notify: true),

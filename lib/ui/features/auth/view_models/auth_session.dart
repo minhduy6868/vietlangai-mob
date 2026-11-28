@@ -60,8 +60,10 @@ class AuthSessionNotifier extends AsyncNotifier<AuthState> {
     try {
       final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
+            id: user.id,
             displayName: user.displayName,
             email: user.email,
+            role: user.role,
           );
       return AuthState(status: AuthStatus.authenticated, user: user);
     } on ApiException catch (error) {
@@ -94,8 +96,10 @@ class AuthSessionNotifier extends AsyncNotifier<AuthState> {
       await tokens.save(pair);
       final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
+            id: user.id,
             displayName: user.displayName,
             email: user.email,
+            role: user.role,
           );
       return AuthState(status: AuthStatus.authenticated, user: user);
     } catch (_) {

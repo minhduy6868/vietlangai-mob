@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 
+import '../../../../data/session_profile.dart';
 import '../../../core/app_feedback.dart';
 import '../../auth/view_models/auth_session.dart';
 import '../view_models/settings_view_model.dart';
@@ -17,16 +18,38 @@ class SettingsView extends ConsumerWidget {
     final notifier = ref.read(settingsViewModelProvider.notifier);
     final auth = ref.watch(authSessionProvider).asData?.value;
     final user = auth?.user;
+    final profile = ref.watch(sessionProfileProvider);
+    final isSignedIn = user != null || profile.isSignedIn;
+    final isStaff =
+        (user?.role == 'admin' || user?.role == 'reviewer') || profile.isStaff;
+    final displayTitle = user != null
+        ? (user.displayName.isEmpty ? user.email : user.displayName)
+        : profile.label;
+    final displayEmail = user?.email ?? profile.email ?? '';
+    final roleLabel = profile.role != null
+        ? profile.roleLabel
+        : (user?.role == 'admin'
+            ? 'Admin'
+            : (user?.role == 'reviewer' ? 'Người rà soát' : 'Thành viên'));
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         children: [
-          if (user != null) ...[
+          if (isSignedIn) ...[
             ListTile(
-              title: Text(user.displayName.isEmpty ? user.email : user.displayName),
-              subtitle: Text(user.email),
+              leading: const Icon(Icons.person_outline),
+              title: Text(displayTitle),
+              subtitle: Text('$displayEmail · $roleLabel'),
             ),
+            if (isStaff)
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings_outlined),
+                title: const Text('Quản trị'),
+                subtitle: const Text('Duyệt câu, thống kê, phân quyền'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin'),
+              ),
             ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: Text(l10n.logout),

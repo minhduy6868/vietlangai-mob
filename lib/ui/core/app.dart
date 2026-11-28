@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ngon_sac_viet/l10n/app_localizations.dart';
 
+import '../features/admin/views/admin_view.dart';
 import '../features/auth/view_models/auth_session.dart';
 import '../features/auth/views/login_view.dart';
 import '../features/contribute/views/contribute_view.dart';
@@ -24,6 +25,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: resolveInitialLocation(),
     refreshListenable: refresh,
     redirect: (context, state) {
+      final path = state.uri.path;
+      if (path.length > 1 && path.endsWith('/')) {
+        return path.substring(0, path.length - 1);
+      }
       final authAsync = ref.read(authSessionProvider);
       final loc = state.matchedLocation;
       final onAuthGate = loc == '/login' || loc == '/register';
@@ -32,8 +37,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
       final auth = authAsync.requireValue;
-      // Only signed-in users leave login/register → translate.
+      // Only signed-in users leave login/register → next / staff admin / translate.
       if (auth.isAuthenticated && onAuthGate) {
+        final next = state.uri.queryParameters['next'];
+        if (next != null && next.isNotEmpty) return next;
+        final role = auth.user?.role;
+        if (role == 'admin' || role == 'reviewer') return '/admin';
         return '/translate';
       }
       return null;
@@ -96,6 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsView(),
+      ),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminView(),
       ),
       GoRoute(
         path: '/login',

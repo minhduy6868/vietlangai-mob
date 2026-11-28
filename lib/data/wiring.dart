@@ -26,8 +26,10 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: apiBaseUrl,
-      connectTimeout: const Duration(seconds: 8),
-      receiveTimeout: const Duration(seconds: 20),
+        connectTimeout: const Duration(seconds: 8),
+        // OCR/ASR + first EasyOCR model load can exceed a minute locally.
+        receiveTimeout: const Duration(seconds: 180),
+        sendTimeout: const Duration(seconds: 60),
     ),
   );
   final tokens = ref.watch(tokenStoreProvider);

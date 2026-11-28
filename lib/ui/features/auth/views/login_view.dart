@@ -275,7 +275,10 @@ class _LoginViewState extends ConsumerState<LoginView>
       }
       if (!mounted) return;
       showAppSnack(context, result.message!, tone: AppFeedbackTone.success);
-      context.go('/translate');
+      final next = GoRouterState.of(context).uri.queryParameters['next'];
+      context.go(
+        next?.isNotEmpty == true ? next! : (result.isStaff ? '/admin' : '/translate'),
+      );
       return;
     }
     if (!mounted) return;
@@ -296,7 +299,10 @@ class _LoginViewState extends ConsumerState<LoginView>
     setState(() => _googleLoading = false);
     if (result.ok) {
       showAppSnack(context, result.message!, tone: AppFeedbackTone.success);
-      context.go('/translate');
+      final next = GoRouterState.of(context).uri.queryParameters['next'];
+      context.go(
+        next?.isNotEmpty == true ? next! : (result.isStaff ? '/admin' : '/translate'),
+      );
       return;
     }
     await showAppAlert(

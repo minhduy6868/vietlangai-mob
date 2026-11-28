@@ -8,18 +8,22 @@ import 'auth_session.dart';
 class AuthActionResult {
   const AuthActionResult.success({
     required this.message,
+    this.role = 'member',
     this.isGoogle = false,
   }) : error = null;
 
   const AuthActionResult.failure(this.error)
       : message = null,
+        role = null,
         isGoogle = false;
 
   final String? message;
   final String? error;
+  final String? role;
   final bool isGoogle;
 
   bool get ok => error == null;
+  bool get isStaff => role == 'admin' || role == 'reviewer';
 }
 
 class AuthViewModel extends Notifier<void> {
@@ -42,12 +46,15 @@ class AuthViewModel extends Notifier<void> {
       await ref.read(tokenStoreProvider).save(tokens);
       final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
+            id: user.id,
             displayName: user.displayName,
             email: user.email,
+            role: user.role,
           );
       await ref.read(authSessionProvider.notifier).markAuthenticated(user);
       return AuthActionResult.success(
         message: register ? successRegisterLabel : successLoginLabel,
+        role: user.role,
       );
     } catch (error) {
       return AuthActionResult.failure(error.toString());
@@ -62,12 +69,15 @@ class AuthViewModel extends Notifier<void> {
       await ref.read(tokenStoreProvider).save(tokens);
       final user = await api.guard(api.me());
       await ref.read(sessionProfileProvider.notifier).save(
+            id: user.id,
             displayName: user.displayName,
             email: user.email.isEmpty ? emailFallback : user.email,
+            role: user.role,
           );
       await ref.read(authSessionProvider.notifier).markAuthenticated(user);
-      return const AuthActionResult.success(
+      return AuthActionResult.success(
         message: 'Đăng nhập Google thành công',
+        role: user.role,
         isGoogle: true,
       );
     } catch (error) {
