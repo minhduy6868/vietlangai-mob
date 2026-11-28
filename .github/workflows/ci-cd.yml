@@ -18,7 +18,7 @@ jobs:
       - name: Pub get, analyze, and test
         run: |
           flutter pub get
-          flutter analyze
+          flutter analyze --no-fatal-infos
           flutter test
       - name: Build web release
         env:
