@@ -20,6 +20,11 @@ class MlKitOcrEngine implements OcrEngine {
       await recognizer.close();
     }
   }
+
+  @override
+  Future<String> recognizeBytes(List<int> bytes) async {
+    throw UnsupportedError('On-device OCR needs a file path on this platform.');
+  }
 }
 
 OcrEngine createOcrEngine() {

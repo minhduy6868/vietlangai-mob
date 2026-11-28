@@ -102,10 +102,22 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get ocrUnavailable =>
-      'Nhận dạng chữ trên máy chạy ở Android và iOS. Bạn có thể gõ câu, hoặc dùng bản điện thoại để gửi ảnh.';
+      'Không mở được camera hoặc thư viện ảnh. Thử lại hoặc gõ câu thủ công.';
 
   @override
   String get ocrEmpty => 'Không thấy chữ trong ảnh này.';
+
+  @override
+  String get ocrCamera => 'Chụp ảnh';
+
+  @override
+  String get ocrGallery => 'Chọn từ thư viện';
+
+  @override
+  String get ocrScanning => 'Đang nhận dạng chữ…';
+
+  @override
+  String get ocrSourceTitle => 'Quét chữ từ ảnh';
 
   @override
   String get contributeTitle => 'Đóng góp một câu đã đối chiếu';

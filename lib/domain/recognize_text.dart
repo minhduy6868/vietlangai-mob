@@ -1,7 +1,8 @@
 class RecognizedPage {
-  const RecognizedPage(this.text);
+  const RecognizedPage(this.text, {this.engine = 'local'});
 
   final String text;
+  final String engine;
 }
 
 class OcrEmptyException implements Exception {
@@ -10,6 +11,10 @@ class OcrEmptyException implements Exception {
 
 abstract class OcrEngine {
   Future<String> recognizePath(String path);
+
+  Future<String> recognizeBytes(List<int> bytes) async {
+    throw UnsupportedError('On-device OCR needs a file path on this platform.');
+  }
 }
 
 class RecognizeTextUseCase {
@@ -22,6 +27,12 @@ class RecognizeTextUseCase {
     if (text.isEmpty) throw const OcrEmptyException();
     return RecognizedPage(text);
   }
+
+  Future<RecognizedPage> fromBytes(List<int> bytes) async {
+    final text = (await _engine.recognizeBytes(bytes)).trim();
+    if (text.isEmpty) throw const OcrEmptyException();
+    return RecognizedPage(text);
+  }
 }
 
 class UnavailableOcrEngine implements OcrEngine {
@@ -29,6 +40,11 @@ class UnavailableOcrEngine implements OcrEngine {
 
   @override
   Future<String> recognizePath(String path) {
+    throw UnsupportedError('On-device OCR is available on Android and iOS.');
+  }
+
+  @override
+  Future<String> recognizeBytes(List<int> bytes) {
     throw UnsupportedError('On-device OCR is available on Android and iOS.');
   }
 }

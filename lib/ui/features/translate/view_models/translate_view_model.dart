@@ -99,6 +99,104 @@ class TranslateViewModel extends Notifier<TranslateUiState> {
     }
   }
 
+  /// OCR + translate via API `/v1/translate/image` (EasyOCR on ML service).
+  Future<TranslationResult?> translateImage({
+    required List<int> bytes,
+    required String filename,
+    required String source,
+    required String target,
+  }) async {
+    state = state.copyWith(
+      loading: true,
+      clearError: true,
+      clearResult: true,
+      pronunciation: null,
+      culturalNote: null,
+      fromGlossary: false,
+    );
+    final store = ref.read(localStoreProvider);
+    final api = ref.read(apiClientProvider);
+    try {
+      final result = await api.guard(
+        api.translateImage(
+          bytes: bytes,
+          filename: filename,
+          sourceLang: source,
+          targetLang: target,
+        ),
+      );
+      final recognized = (result.recognizedText ?? '').trim();
+      if (recognized.isNotEmpty || result.text.trim().isNotEmpty) {
+        await _persistHistory(
+          store,
+          sourceText: recognized.isNotEmpty ? recognized : result.text,
+          targetText: result.text,
+          from: source,
+          to: target,
+          engine: result.engine,
+        );
+      }
+      state = state.copyWith(loading: false, result: result, fromGlossary: false);
+      return result;
+    } on ApiException catch (error) {
+      state = state.copyWith(loading: false, error: error.message);
+      return null;
+    } catch (error) {
+      state = state.copyWith(loading: false, error: error.toString());
+      return null;
+    }
+  }
+
+  /// ASR + translate via API `/v1/translate/speech` (Whisper on ML service).
+  Future<TranslationResult?> translateSpeech({
+    required List<int> bytes,
+    required String filename,
+    required String source,
+    required String target,
+    String? contentType,
+  }) async {
+    state = state.copyWith(
+      loading: true,
+      clearError: true,
+      clearResult: true,
+      pronunciation: null,
+      culturalNote: null,
+      fromGlossary: false,
+    );
+    final store = ref.read(localStoreProvider);
+    final api = ref.read(apiClientProvider);
+    try {
+      final result = await api.guard(
+        api.translateSpeech(
+          bytes: bytes,
+          filename: filename,
+          sourceLang: source,
+          targetLang: target,
+          contentType: contentType,
+        ),
+      );
+      final recognized = (result.recognizedText ?? '').trim();
+      if (recognized.isNotEmpty || result.text.trim().isNotEmpty) {
+        await _persistHistory(
+          store,
+          sourceText: recognized.isNotEmpty ? recognized : result.text,
+          targetText: result.text,
+          from: source,
+          to: target,
+          engine: result.engine,
+        );
+      }
+      state = state.copyWith(loading: false, result: result, fromGlossary: false);
+      return result;
+    } on ApiException catch (error) {
+      state = state.copyWith(loading: false, error: error.message);
+      return null;
+    } catch (error) {
+      state = state.copyWith(loading: false, error: error.toString());
+      return null;
+    }
+  }
+
   Future<bool> _tryGlossaryFallback(
     LocalStore store, {
     required String text,

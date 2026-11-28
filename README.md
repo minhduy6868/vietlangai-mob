@@ -7,8 +7,11 @@ Clean architecture: `domain` (model, use case), `data` (SQLite, API, Supabase, O
 - **Flutter Web** + **Android/iOS/Windows** dùng chung một codebase.
 - Landing marketing: thư mục `landing/` (HTML/CSS/JS), deep-link vào `/app/#/...`.
 - Material 3, sáng/tối, tiếng Việt và tiếng Anh qua ARB.
-- `go_router`: Welcome, Login, Register, bốn tab (Dịch, Di sản, Học, Đóng góp), Settings.
+- `go_router`: Welcome, Login, Register, bốn tab (Dịch, Di sản, Học, Đóng góp), Settings, Admin (`/admin`).
 - Auth gọi **cùng FastAPI** (`/v1/auth/*`). Token lưu bằng `flutter_secure_storage`.
+- Model sinh bằng freezed. Sau khi đổi model: `dart run build_runner build`.
+- Máy lưu catalog và câu đóng góp trước. `SyncUseCase` kéo catalog và đẩy câu chờ khi có mạng.
+- OCR: camera hoặc thư viện ảnh (`image_picker`). Trên Android/iOS dùng ML Kit khi còn native; mọi nền tảng (kể cả web) gửi ảnh lên `POST /v1/translate/image` → ML EasyOCR khi cần.
 - Supabase anon key chỉ để đọc catalog. Đăng nhập và gửi câu đi qua API.
 
 ## Authentication
@@ -19,6 +22,7 @@ Clean architecture: `domain` (model, use case), `data` (SQLite, API, Supabase, O
 | Đăng nhập | `/login` |
 | Đăng ký | `/register` |
 | Cài đặt (đăng xuất) | `/settings` |
+| Quản trị (staff/admin) | `/admin` |
 
 Luồng phiên:
 

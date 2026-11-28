@@ -132,6 +132,9 @@ class _Engine implements OcrEngine {
 
   @override
   Future<String> recognizePath(String path) async => text;
+
+  @override
+  Future<String> recognizeBytes(List<int> bytes) async => text;
 }
 
 class _BrokenCatalog implements CatalogSource {

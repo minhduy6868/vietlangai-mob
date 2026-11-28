@@ -102,10 +102,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ocrUnavailable =>
-      'On-device text recognition runs on Android and iOS. Type the sentence here, or use the API image route from a phone build.';
+      'Could not open the camera or photo library. Try again, or type the sentence.';
 
   @override
   String get ocrEmpty => 'No text was found in that photo.';
+
+  @override
+  String get ocrCamera => 'Take a photo';
+
+  @override
+  String get ocrGallery => 'Choose from gallery';
+
+  @override
+  String get ocrScanning => 'Recognizing text…';
+
+  @override
+  String get ocrSourceTitle => 'Scan text from a photo';
 
   @override
   String get contributeTitle => 'Contribute a checked sentence';

@@ -281,7 +281,7 @@ abstract class AppLocalizations {
   /// No description provided for @ocrUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'On-device text recognition runs on Android and iOS. Type the sentence here, or use the API image route from a phone build.'**
+  /// **'Could not open the camera or photo library. Try again, or type the sentence.'**
   String get ocrUnavailable;
 
   /// No description provided for @ocrEmpty.
@@ -289,6 +289,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No text was found in that photo.'**
   String get ocrEmpty;
+
+  /// No description provided for @ocrCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get ocrCamera;
+
+  /// No description provided for @ocrGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get ocrGallery;
+
+  /// No description provided for @ocrScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognizing text…'**
+  String get ocrScanning;
+
+  /// No description provided for @ocrSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan text from a photo'**
+  String get ocrSourceTitle;
 
   /// No description provided for @contributeTitle.
   ///
